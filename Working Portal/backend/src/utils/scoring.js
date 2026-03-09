@@ -11,24 +11,45 @@ async function calculateScores(client, testSessionId) {
   let english = 0;
   let math = 0;
   let scienceEvs = 0;
+  let telugu = 0;
+  let hindi = 0;
 
   for (const row of answerRows.rows) {
     if (!["ANSWERED", "ANSWERED_MARKED"].includes(row.answer_status)) continue;
     const correct = (row.selected_option || "").toLowerCase() === (row.correct_option || "").toLowerCase();
     if (!correct) continue;
 
-    total += 1;
-    const subject = String(row.subject || "").toLowerCase();
-    if (subject.includes("eng")) english += 1;
-    else if (subject.includes("math")) math += 1;
-    else scienceEvs += 1;
+    switch (String(row.subject || "").toLowerCase()) {
+      case "english":
+        english += 1;
+        break;
+      case "mathematics":
+        math += 1;
+        break;
+      case "science":
+      case "evs":
+        scienceEvs += 1;
+        break;
+      case "telugu":
+        telugu += 1;
+        break;
+      case "hindi":
+        hindi += 1;
+        break;
+      default:
+        break;
+    }
   }
+
+  total = english + math + scienceEvs + telugu + hindi;
 
   return {
     total,
     english,
     math,
     scienceEvs,
+    telugu,
+    hindi,
   };
 }
 

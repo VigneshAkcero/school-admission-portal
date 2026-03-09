@@ -121,9 +121,11 @@ function startAutoSubmitJob() {
                  score = $1,
                  score_english = $2,
                  score_math = $3,
-                 score_science_evs = $4
-             WHERE id = $5`,
-            [scoreResult.total, scoreResult.english, scoreResult.math, scoreResult.scienceEvs, session.id],
+                 score_science_evs = $4,
+                 score_telugu = $5,
+                 score_hindi = $6
+             WHERE id = $7`,
+            [scoreResult.total, scoreResult.english, scoreResult.math, scoreResult.scienceEvs, scoreResult.telugu, scoreResult.hindi, session.id],
           );
           await client.query(
             `UPDATE applicants
@@ -134,7 +136,9 @@ function startAutoSubmitJob() {
                  score = $3,
                  score_english = $4,
                  score_math = $5,
-                 score_science_evs = $6
+                 score_science_evs = $6,
+                 score_telugu = $7,
+                 score_hindi = $8
              WHERE id = $1`,
             [
               session.applicant_id,
@@ -143,6 +147,8 @@ function startAutoSubmitJob() {
               scoreResult.english,
               scoreResult.math,
               scoreResult.scienceEvs,
+              scoreResult.telugu,
+              scoreResult.hindi,
             ],
           );
           await client.query("COMMIT");

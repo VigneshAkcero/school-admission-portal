@@ -27,7 +27,10 @@ interface ExamScreenProps {
 const subjectLabels = {
   english: "English",
   mathematics: "Mathematics",
-  evs: "EVS / Science",
+  evs: "EVS",
+  science: "Science",
+  telugu: "Telugu",
+  hindi: "Hindi",
 }
 
 export function ExamScreen({ examData, onSubmit }: ExamScreenProps) {
@@ -41,10 +44,11 @@ export function ExamScreen({ examData, onSubmit }: ExamScreenProps) {
   )
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [timeRemaining, setTimeRemaining] = useState(examData.duration * 60)
-  const [activeSubject, setActiveSubject] = useState<"english" | "mathematics" | "evs">("english")
+  const [activeSubject, setActiveSubject] = useState<ExamData["questions"][number]["subject"]>(examData.questions[0]?.subject ?? "english")
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
 
   const currentQuestion = examData.questions[currentQuestionIndex]
+  const subjectOrder = Array.from(new Set(examData.questions.map((q) => q.subject)))
   const subjectQuestions = examData.questions.filter((q) => q.subject === activeSubject)
   const subjectQuestionIndex = subjectQuestions.findIndex((q) => q.id === currentQuestion.id)
 
@@ -80,7 +84,7 @@ export function ExamScreen({ examData, onSubmit }: ExamScreenProps) {
   const calculateResult = useCallback((): ExamResult => {
     const { correctAnswers } = require("@/lib/exam-data")
     
-    const subjectScores = (["english", "mathematics", "evs"] as const).map((subject) => {
+    const subjectScores = subjectOrder.map((subject) => {
       const subjectQs = examData.questions.filter((q) => q.subject === subject)
       const correct = subjectQs.filter((q) => {
         const qIndex = examData.questions.findIndex((eq) => eq.id === q.id)
@@ -102,7 +106,7 @@ export function ExamScreen({ examData, onSubmit }: ExamScreenProps) {
       totalCorrect,
       subjectScores,
     }
-  }, [examData, questionStates])
+  }, [examData, questionStates, subjectOrder])
 
   const handleSubmit = useCallback(() => {
     const result = calculateResult()
@@ -166,7 +170,7 @@ export function ExamScreen({ examData, onSubmit }: ExamScreenProps) {
     })
   }
 
-  const handleSubjectChange = (subject: "english" | "mathematics" | "evs") => {
+  const handleSubjectChange = (subject: ExamData["questions"][number]["subject"]) => {
     // Save current answer before switching
     setQuestionStates((prev) => {
       const newStates = [...prev]
@@ -222,7 +226,7 @@ export function ExamScreen({ examData, onSubmit }: ExamScreenProps) {
         <div className="flex-1 flex flex-col p-4 lg:p-6">
           {/* Subject Tabs */}
           <div className="flex gap-1 mb-4 bg-muted p-1 rounded-lg w-fit">
-            {(["english", "mathematics", "evs"] as const).map((subject) => (
+            {subjectOrder.map((subject) => (
               <button
                 key={subject}
                 onClick={() => handleSubjectChange(subject)}

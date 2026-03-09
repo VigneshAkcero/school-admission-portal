@@ -37,6 +37,8 @@ function normalizeSubjectKey(subject: string) {
   if (value.includes("eng")) return "english";
   if (value.includes("evs")) return "evs";
   if (value.includes("sci")) return "science";
+  if (value.includes("tel")) return "telugu";
+  if (value.includes("hin")) return "hindi";
   return "";
 }
 
@@ -171,11 +173,15 @@ export default function SessionMonitorPage() {
               ? { english_answered: answeredInSubject, english_total: totalInSubject }
               : subjectKey === "mathematics"
                 ? { mathematics_answered: answeredInSubject, mathematics_total: totalInSubject }
-                : subjectKey === "evs"
-                  ? { evs_answered: answeredInSubject, evs_total: totalInSubject }
-                  : subjectKey === "science"
-                    ? { science_answered: answeredInSubject, science_total: totalInSubject }
-                    : {};
+                  : subjectKey === "evs"
+                    ? { evs_answered: answeredInSubject, evs_total: totalInSubject }
+                    : subjectKey === "science"
+                      ? { science_answered: answeredInSubject, science_total: totalInSubject }
+                      : subjectKey === "telugu"
+                        ? { telugu_answered: answeredInSubject, telugu_total: totalInSubject }
+                        : subjectKey === "hindi"
+                          ? { hindi_answered: answeredInSubject, hindi_total: totalInSubject }
+                      : {};
 
           return {
             ...prev,
@@ -312,11 +318,13 @@ export default function SessionMonitorPage() {
                     </div>
                     <div className="space-y-3">
                       {[
-                        { label: "Maths", answered: session.mathematics_answered || 0, total: session.mathematics_total || 0, tone: "bg-blue-500" },
-                        { label: "EVS", answered: session.evs_answered || 0, total: session.evs_total || 0, tone: "bg-emerald-500" },
-                        { label: "Science", answered: session.science_answered || 0, total: session.science_total || 0, tone: "bg-violet-500" },
-                        { label: "English", answered: session.english_answered || 0, total: session.english_total || 0, tone: "bg-amber-500" },
-                      ]
+                      { label: "Maths", answered: session.mathematics_answered || 0, total: session.mathematics_total || 0, tone: "bg-blue-500" },
+                      { label: "EVS", answered: session.evs_answered || 0, total: session.evs_total || 0, tone: "bg-emerald-500" },
+                      { label: "Science", answered: session.science_answered || 0, total: session.science_total || 0, tone: "bg-violet-500" },
+                      { label: "English", answered: session.english_answered || 0, total: session.english_total || 0, tone: "bg-amber-500" },
+                      { label: "Telugu", answered: session.telugu_answered || 0, total: session.telugu_total || 0, tone: "bg-amber-500" },
+                      { label: "Hindi", answered: session.hindi_answered || 0, total: session.hindi_total || 0, tone: "bg-violet-500" },
+                    ]
                         .filter((subject) => subject.total > 0)
                         .map((subject) => (
                           <SubjectProgress
@@ -405,6 +413,8 @@ export default function SessionMonitorPage() {
                     { label: "EVS", answered: selectedSession.evs_answered || 0, total: selectedSession.evs_total || 0, tone: "bg-emerald-500" },
                     { label: "Science", answered: selectedSession.science_answered || 0, total: selectedSession.science_total || 0, tone: "bg-violet-500" },
                     { label: "English", answered: selectedSession.english_answered || 0, total: selectedSession.english_total || 0, tone: "bg-amber-500" },
+                    { label: "Telugu", answered: selectedSession.telugu_answered || 0, total: selectedSession.telugu_total || 0, tone: "bg-amber-500" },
+                    { label: "Hindi", answered: selectedSession.hindi_answered || 0, total: selectedSession.hindi_total || 0, tone: "bg-violet-500" },
                   ]
                     .filter((subject) => subject.total > 0)
                     .map((subject) => (

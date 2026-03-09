@@ -49,15 +49,19 @@ async function seed() {
         let score_english = null;
         let score_math = null;
         let score_science_evs = null;
+        let score_telugu = null;
+        let score_hindi = null;
         let score = null;
         let test_started_at = null;
         let test_completed_at = null;
 
         if (["test_completed", "approved", "rejected"].includes(status)) {
-            score_english = Math.floor(Math.random() * 35);
-            score_math = Math.floor(Math.random() * 35);
-            score_science_evs = Math.floor(Math.random() * 30);
-            score = score_english + score_math + score_science_evs;
+            score_english = Math.floor(Math.random() * 20);
+            score_math = Math.floor(Math.random() * 20);
+            score_science_evs = Math.floor(Math.random() * 20);
+            score_telugu = Math.floor(Math.random() * 20);
+            score_hindi = Math.floor(Math.random() * 20);
+            score = score_english + score_math + score_science_evs + score_telugu + score_hindi;
 
             const start = new Date();
             start.setMinutes(start.getMinutes() - 45 - Math.floor(Math.random() * 60));
@@ -74,12 +78,12 @@ async function seed() {
         await pool.query(
             `INSERT INTO applicants (
                 student_name, parent_name, mobile_number, grade, status, 
-                test_code, score_english, score_math, score_science_evs, score,
+                test_code, score_english, score_math, score_science_evs, score_telugu, score_hindi, score,
                 test_started_at, test_completed_at, applied_at, created_by
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
             [
                 name, parent, mobile, grade, status,
-                testCode, score_english, score_math, score_science_evs, score,
+                testCode, score_english, score_math, score_science_evs, score_telugu, score_hindi, score,
                 test_started_at, test_completed_at, appliedAt.toISOString(), adminId
             ]
         );

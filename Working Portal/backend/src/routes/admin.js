@@ -53,13 +53,22 @@ router.get("/dashboard-summary", async (_req, res) => {
   const [countResult, latestResult] = await Promise.all([
     pool.query(
       `SELECT
-         COUNT(*) FILTER (WHERE status IN ('test_completed', 'approved', 'rejected'))::int AS completed_overall,
-         COUNT(*) FILTER (WHERE status = 'test_started')::int AS active_participants,
-         COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_applicants,
-         COUNT(*) FILTER (WHERE status = 'test_scheduled')::int AS scheduled_tests,
-         COUNT(*) FILTER (WHERE status = 'test_completed')::int AS completed_pending_review
+         COUNT(*) FILTER (WHERE applicants.status IN ('test_completed', 'approved', 'rejected'))::int AS completed_overall,
+         COUNT(*) FILTER (WHERE applicants.status = 'test_started')::int AS active_participants,
+         COUNT(*) FILTER (WHERE applicants.status = 'pending')::int AS pending_applicants,
+         COUNT(*) FILTER (WHERE applicants.status = 'test_scheduled')::int AS scheduled_tests,
+         COUNT(*) FILTER (WHERE applicants.status = 'test_completed')::int AS completed_pending_review,
+         ROUND(AVG(ts.score_english)::numeric, 1) AS avg_english,
+         ROUND(AVG(ts.score_math)::numeric, 1) AS avg_math,
+         ROUND(AVG(ts.score_science_evs)::numeric, 1) AS avg_science_evs,
+         ROUND(AVG(ts.score_telugu)::numeric, 1) AS avg_telugu,
+         ROUND(AVG(ts.score_hindi)::numeric, 1) AS avg_hindi
        FROM applicants
-       WHERE status != 'revoked'`,
+       LEFT JOIN test_sessions ts
+         ON ts.applicant_id = applicants.id
+        AND ts.status = 'finished'
+        AND ts.test_date = CURRENT_DATE
+       WHERE applicants.status != 'revoked'`,
     ),
     pool.query(
       `SELECT
@@ -87,6 +96,11 @@ router.get("/dashboard-summary", async (_req, res) => {
     pendingApplicants: countResult.rows[0].pending_applicants,
     scheduledTests: countResult.rows[0].scheduled_tests,
     completedPendingReview: countResult.rows[0].completed_pending_review,
+    avgEnglish: countResult.rows[0].avg_english,
+    avgMath: countResult.rows[0].avg_math,
+    avgScienceEvs: countResult.rows[0].avg_science_evs,
+    avgTelugu: countResult.rows[0].avg_telugu,
+    avgHindi: countResult.rows[0].avg_hindi,
     latestStudents: latestResult.rows,
   });
 });
@@ -205,6 +219,8 @@ router.post("/applicants/:id/generate-code", async (req, res) => {
          score_english = NULL,
          score_math = NULL,
          score_science_evs = NULL,
+         score_telugu = NULL,
+         score_hindi = NULL,
          created_by = EXCLUDED.created_by,
        created_at = NOW(),
        test_date = CURRENT_DATE`,
@@ -324,6 +340,10 @@ router.get("/active-sessions", async (_req, res) => {
        COALESCE(subject_counts.evs_total, 0)::int AS evs_total,
        COALESCE(subject_counts.science_answered, 0)::int AS science_answered,
        COALESCE(subject_counts.science_total, 0)::int AS science_total,
+       COALESCE(subject_counts.telugu_answered, 0)::int AS telugu_answered,
+       COALESCE(subject_counts.telugu_total, 0)::int AS telugu_total,
+       COALESCE(subject_counts.hindi_answered, 0)::int AS hindi_answered,
+       COALESCE(subject_counts.hindi_total, 0)::int AS hindi_total,
        COALESCE((
          SELECT COUNT(*)::int
          FROM questions q
@@ -355,7 +375,11 @@ router.get("/active-sessions", async (_req, res) => {
          COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%evs%' AND a.answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS evs_answered,
          COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%evs%')::int AS evs_total,
          COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%sci%' AND a.answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS science_answered,
-         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%sci%')::int AS science_total
+         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%sci%')::int AS science_total,
+         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%tel%' AND a.answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS telugu_answered,
+         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%tel%')::int AS telugu_total,
+         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%hin%' AND a.answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS hindi_answered,
+         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%hin%')::int AS hindi_total
        FROM test_sessions ts_inner
        JOIN questions q ON q.class_level = ts_inner.grade
        LEFT JOIN answers a ON a.test_session_id = ts_inner.id AND a.question_id = q.id
@@ -444,9 +468,11 @@ router.post("/end-test", async (req, res) => {
            score = $2,
            score_english = $3,
            score_math = $4,
-           score_science_evs = $5
+           score_science_evs = $5,
+           score_telugu = $6,
+           score_hindi = $7
        WHERE id = $1`,
-      [session.id, scores.total, scores.english, scores.math, scores.scienceEvs],
+      [session.id, scores.total, scores.english, scores.math, scores.scienceEvs, scores.telugu, scores.hindi],
     );
 
     await client.query(
@@ -458,7 +484,9 @@ router.post("/end-test", async (req, res) => {
            score = $3,
            score_english = $4,
            score_math = $5,
-           score_science_evs = $6
+           score_science_evs = $6,
+           score_telugu = $7,
+           score_hindi = $8
        WHERE id = $1`,
       [
         session.applicant_id,
@@ -467,6 +495,8 @@ router.post("/end-test", async (req, res) => {
         scores.english,
         scores.math,
         scores.scienceEvs,
+        scores.telugu,
+        scores.hindi,
       ],
     );
 

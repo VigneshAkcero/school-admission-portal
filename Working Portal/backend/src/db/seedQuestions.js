@@ -3,9 +3,14 @@ const path = require("path");
 const pool = require("./pool");
 
 async function seedQuestions() {
-  const questionFile = path.resolve(process.cwd(), "question_bank.json");
-  if (!fs.existsSync(questionFile)) {
-    throw new Error(`question_bank.json not found at ${questionFile}`);
+  const candidateFiles = [
+    path.resolve(process.cwd(), "../data/question_bank_updated.json"),
+    path.resolve(process.cwd(), "../data/question_bank.json"),
+    path.resolve(process.cwd(), "question_bank.json"),
+  ];
+  const questionFile = candidateFiles.find((file) => fs.existsSync(file));
+  if (!questionFile) {
+    throw new Error(`Question bank not found. Checked: ${candidateFiles.join(", ")}`);
   }
 
   const raw = fs.readFileSync(questionFile, "utf-8");

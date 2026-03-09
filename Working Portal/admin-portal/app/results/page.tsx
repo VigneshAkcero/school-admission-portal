@@ -82,7 +82,21 @@ export default function ResultsPage() {
 
   function exportApprovedCsv() {
     const approved = results.filter((row) => row.status === "approved");
-    const header = ["Student Name", "Parent Name", "Parent Mobile", "Grade", "Date", "Code", "Percentage", "Status"];
+    const header = [
+      "Student Name",
+      "Parent Name",
+      "Parent Mobile",
+      "Grade",
+      "Date",
+      "Code",
+      "English",
+      "Math",
+      "EVS/Science",
+      "Telugu",
+      "Hindi",
+      "Percentage",
+      "Status",
+    ];
     const lines = [header.join(",")];
     approved.forEach((row) => {
       lines.push(
@@ -93,6 +107,11 @@ export default function ResultsPage() {
           row.grade,
           formatDateOnly(getSubmissionTimestamp(row)),
           row.test_code || "",
+          row.score_english ?? 0,
+          row.score_math ?? 0,
+          row.score_science_evs ?? 0,
+          row.score_telugu ?? 0,
+          row.score_hindi ?? 0,
           `${row.score_percentage ?? 0}%`,
           row.status,
         ]
@@ -150,7 +169,7 @@ export default function ResultsPage() {
           </div>
 
           <div className="relative w-full overflow-x-auto rounded-[32px] border border-slate-100 bg-white">
-            <table className="min-w-[1360px] border-collapse text-left">
+            <table className="min-w-[1720px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-slate-50 bg-slate-50/30">
                   <th className="px-5 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Student Name</th>
@@ -159,6 +178,11 @@ export default function ResultsPage() {
                   <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Grade</th>
                   <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Date</th>
                   <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Code</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">English</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Math</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">EVS / Sci</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Telugu</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Hindi</th>
                   <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Performance</th>
                   <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Status</th>
                   <th className="px-5 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 text-right">Review Action</th>
@@ -194,6 +218,11 @@ export default function ResultsPage() {
                           {formatTestCode(row.test_code)}
                         </code>
                       </td>
+                      <td className="px-4 py-5 text-sm font-bold text-slate-700">{row.score_english ?? "—"}</td>
+                      <td className="px-4 py-5 text-sm font-bold text-slate-700">{row.score_math ?? "—"}</td>
+                      <td className="px-4 py-5 text-sm font-bold text-slate-700">{row.score_science_evs ?? "—"}</td>
+                      <td className="px-4 py-5 text-sm font-bold text-slate-700">{row.score_telugu ?? "—"}</td>
+                      <td className="px-4 py-5 text-sm font-bold text-slate-700">{row.score_hindi ?? "—"}</td>
                       <td className="px-4 py-5">
                         <button
                           type="button"
@@ -357,20 +386,26 @@ function AcademicScorecard({ row }: { row: ApplicantRow }) {
   const englishCorrect = row.score_english ?? 0;
   const mathCorrect = row.score_math ?? 0;
   const scienceCorrect = row.score_science_evs ?? 0;
-  const subjectScaleBase = Math.max(englishCorrect + mathCorrect + scienceCorrect, 1);
+  const teluguCorrect = row.score_telugu ?? 0;
+  const hindiCorrect = row.score_hindi ?? 0;
+  const subjectScaleBase = Math.max(englishCorrect + mathCorrect + scienceCorrect + teluguCorrect + hindiCorrect, 1);
   const chartData = [
     { label: "Overall %", value: overallPercentage },
     { label: "Correct", value: correctAnswersPercentage },
     { label: "English", value: Math.min((englishCorrect / subjectScaleBase) * 100, 100) },
     { label: "Math", value: Math.min((mathCorrect / subjectScaleBase) * 100, 100) },
-    { label: "Science", value: Math.min((scienceCorrect / subjectScaleBase) * 100, 100) },
+    { label: "EVS / Sci", value: Math.min((scienceCorrect / subjectScaleBase) * 100, 100) },
+    { label: "Telugu", value: Math.min((teluguCorrect / subjectScaleBase) * 100, 100) },
+    { label: "Hindi", value: Math.min((hindiCorrect / subjectScaleBase) * 100, 100) },
   ];
   const metricLegend = [
-    { label: "Overall %", value: `${formatPercentage(overallPercentage)}%` },
-    { label: "Correct Answers", value: `${formatPercentage(correctAnswersPercentage)}%` },
-    { label: "English Correct", value: `${formatPercentage(Math.min((englishCorrect / subjectScaleBase) * 100, 100))}%` },
-    { label: "Mathematics Correct", value: `${formatPercentage(Math.min((mathCorrect / subjectScaleBase) * 100, 100))}%` },
-    { label: "Science Correct", value: `${formatPercentage(Math.min((scienceCorrect / subjectScaleBase) * 100, 100))}%` },
+    { label: "Overall %", value: `${formatPercentage(overallPercentage)}%`, color: "#2563eb" },
+    { label: "Correct Answers", value: `${formatPercentage(correctAnswersPercentage)}%`, color: "#0f172a" },
+    { label: "English Correct", value: `${formatPercentage(Math.min((englishCorrect / subjectScaleBase) * 100, 100))}%`, color: "#3b82f6" },
+    { label: "Mathematics Correct", value: `${formatPercentage(Math.min((mathCorrect / subjectScaleBase) * 100, 100))}%`, color: "#10b981" },
+    { label: "EVS / Science Correct", value: `${formatPercentage(Math.min((scienceCorrect / subjectScaleBase) * 100, 100))}%`, color: "#f97316" },
+    { label: "Telugu Correct", value: `${formatPercentage(Math.min((teluguCorrect / subjectScaleBase) * 100, 100))}%`, color: "#f59e0b" },
+    { label: "Hindi Correct", value: `${formatPercentage(Math.min((hindiCorrect / subjectScaleBase) * 100, 100))}%`, color: "#8b5cf6" },
   ];
 
   return (
@@ -387,7 +422,8 @@ function AcademicScorecard({ row }: { row: ApplicantRow }) {
       </div>
       <div className="flex flex-wrap gap-2">
         {metricLegend.map((item) => (
-          <div key={item.label} className="rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-sm font-bold text-slate-600">
+          <div key={item.label} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-sm font-bold text-slate-600">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
             <span className="text-slate-500">{item.label}:</span> {item.value}
           </div>
         ))}

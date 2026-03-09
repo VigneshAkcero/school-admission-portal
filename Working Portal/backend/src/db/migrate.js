@@ -81,6 +81,8 @@ async function migrate() {
       score_english INTEGER NULL,
       score_math INTEGER NULL,
       score_science_evs INTEGER NULL,
+      score_telugu INTEGER NULL,
+      score_hindi INTEGER NULL,
       decision_at TIMESTAMP NULL
     );
   `);
@@ -101,9 +103,31 @@ async function migrate() {
       score_english INTEGER NULL,
       score_math INTEGER NULL,
       score_science_evs INTEGER NULL,
+      score_telugu INTEGER NULL,
+      score_hindi INTEGER NULL,
       created_at TIMESTAMP NOT NULL DEFAULT now(),
       test_date DATE NOT NULL DEFAULT CURRENT_DATE
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE applicants
+    ADD COLUMN IF NOT EXISTS score_telugu INTEGER NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE applicants
+    ADD COLUMN IF NOT EXISTS score_hindi INTEGER NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE test_sessions
+    ADD COLUMN IF NOT EXISTS score_telugu INTEGER NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE test_sessions
+    ADD COLUMN IF NOT EXISTS score_hindi INTEGER NULL;
   `);
 
   await pool.query(`
@@ -244,6 +268,8 @@ async function migrate() {
       score_english,
       score_math,
       score_science_evs,
+      score_telugu,
+      score_hindi,
       applicant_number
     )
     SELECT
@@ -267,6 +293,8 @@ async function migrate() {
       ts.score_english,
       ts.score_math,
       ts.score_science_evs,
+      ts.score_telugu,
+      ts.score_hindi,
       NULLIF(RIGHT(ts.test_code, 3), '')::INTEGER
     FROM test_sessions ts
     LEFT JOIN (

@@ -108,6 +108,8 @@ router.get("/results", async (req, res) => {
        a.score_english,
        a.score_math,
        a.score_science_evs,
+       a.score_telugu,
+       a.score_hindi,
        COALESCE(question_totals.total_questions, 0)::int AS total_questions,
        CASE
          WHEN COALESCE(question_totals.total_questions, 0) = 0 THEN 0

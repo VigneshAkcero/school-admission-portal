@@ -41,6 +41,15 @@ type QuestionState = {
 };
 type ExamPhase = "loading" | "ready_to_share" | "starting" | "instructions" | "exam" | "finished";
 
+const SUBJECT_META: Record<string, { key: string; color: string }> = {
+  English: { key: "english", color: "#3b82f6" },
+  Mathematics: { key: "mathematics", color: "#10b981" },
+  EVS: { key: "evs", color: "#f97316" },
+  Science: { key: "science", color: "#f97316" },
+  Telugu: { key: "telugu", color: "#f59e0b" },
+  Hindi: { key: "hindi", color: "#8b5cf6" },
+};
+
 function timerClass(seconds: number) {
   if (seconds <= 120) return "text-red-600 animate-pulse";
   if (seconds <= 300) return "text-orange-500";
@@ -61,6 +70,17 @@ function createQuestionState(partial?: Partial<QuestionState>): QuestionState {
     needsAttention: false,
     ...partial,
   };
+}
+
+function normalizeSubjectLabel(subject: string) {
+  const value = subject.toLowerCase();
+  if (value.includes("eng")) return "English";
+  if (value.includes("math")) return "Mathematics";
+  if (value.includes("evs")) return "EVS";
+  if (value.includes("sci")) return "Science";
+  if (value.includes("tel")) return "Telugu";
+  if (value.includes("hin")) return "Hindi";
+  return subject;
 }
 
 function deriveSavedStatus(saved?: {
@@ -509,17 +529,17 @@ export default function ExamPage() {
 
   const subjectList = useMemo(() => {
     if (!session) return [] as string[];
-    const grade = session.grade;
-    const base = grade <= 6 ? ["english", "mathematics", "evs"] : ["english", "mathematics", "science"];
-    return base.filter((s) => session.questions.some((q) => q.subject.toLowerCase().includes(s === "science" ? "sci" : s.slice(0, 3))));
+    return session.questions.reduce<string[]>((subjects, currentQuestion) => {
+      const subject = normalizeSubjectLabel(currentQuestion.subject);
+      if (!subjects.includes(subject)) {
+        subjects.push(subject);
+      }
+      return subjects;
+    }, []);
   }, [session]);
 
   function findSubjectKey(subject: string) {
-    const s = subject.toLowerCase();
-    if (s.includes("eng")) return "english";
-    if (s.includes("math")) return "mathematics";
-    if (s.includes("evs")) return "evs";
-    return "science";
+    return normalizeSubjectLabel(subject);
   }
 
   function markCurrentUnsaved(index: number) {
@@ -994,8 +1014,7 @@ export default function ExamPage() {
           <div className="overflow-hidden rounded-[16px] border border-slate-300 bg-white shadow-sm">
             <div className="flex flex-wrap gap-2 border-b bg-slate-50 px-5 py-4">
               {subjectList.map((subject) => {
-                const label =
-                  subject === "english" ? "English" : subject === "mathematics" ? "Mathematics" : subject === "evs" ? "EVS" : "Science";
+                const subjectMeta = SUBJECT_META[subject] ?? { color: "#3d6cb0" };
                 const matchingIndexes = session.questions
                   .map((q, i) => ({ key: findSubjectKey(q.subject), i }))
                   .filter((item) => item.key === subject)
@@ -1007,12 +1026,13 @@ export default function ExamPage() {
                     className={cn(
                       "rounded-md border px-5 py-2 text-[11px] font-bold transition-all",
                       active
-                        ? "border-[#3d6cb0] bg-[#3d6cb0] text-white"
+                        ? "text-white shadow-sm"
                         : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
                     )}
+                    style={active ? { borderColor: subjectMeta.color, backgroundColor: subjectMeta.color } : undefined}
                     onClick={() => matchingIndexes.length > 0 && goToQuestion(matchingIndexes[0])}
                   >
-                    {label}
+                    {subject}
                   </button>
                 );
               })}
@@ -1031,6 +1051,18 @@ export default function ExamPage() {
                       Reference Passage
                     </p>
                     {passage}
+                  </div>
+                ) : null}
+
+                {question.imageRequired ? (
+                  <div className="rounded-xl border-[1.5px] border-amber-400 bg-amber-100/60 px-4 py-3 text-sm text-amber-900">
+                    <p className="font-bold">Image question:</p>
+                    <p className="mt-1">
+                      Refer to the printed question paper or the image provided by the invigilator for this question.
+                    </p>
+                    {question.passageText ? (
+                      <p className="mt-2 text-xs italic text-amber-800/90">{question.passageText}</p>
+                    ) : null}
                   </div>
                 ) : null}
 

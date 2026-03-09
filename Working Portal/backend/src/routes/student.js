@@ -340,9 +340,11 @@ router.post("/submit-test", submitLimiter, async (req, res) => {
            score = $2,
            score_english = $3,
            score_math = $4,
-           score_science_evs = $5
+           score_science_evs = $5,
+           score_telugu = $6,
+           score_hindi = $7
        WHERE id = $1`,
-      [session.id, scores.total, scores.english, scores.math, scores.scienceEvs],
+      [session.id, scores.total, scores.english, scores.math, scores.scienceEvs, scores.telugu, scores.hindi],
     );
 
     await client.query(
@@ -354,7 +356,9 @@ router.post("/submit-test", submitLimiter, async (req, res) => {
            score = $3,
            score_english = $4,
            score_math = $5,
-           score_science_evs = $6
+           score_science_evs = $6,
+           score_telugu = $7,
+           score_hindi = $8
        WHERE id = $1`,
       [
         session.applicant_id,
@@ -363,6 +367,8 @@ router.post("/submit-test", submitLimiter, async (req, res) => {
         scores.english,
         scores.math,
         scores.scienceEvs,
+        scores.telugu,
+        scores.hindi,
       ],
     );
 

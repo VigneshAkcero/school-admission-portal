@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Radar, CheckCircle2, Clock, History, FileClock } from "lucide-react";
+import { ArrowRight, Radar, CheckCircle2, Clock, History, FileClock, Languages } from "lucide-react";
 import { getHomePathForRole, useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import type { AdminDashboardSummary } from "@/lib/types";
@@ -12,6 +12,7 @@ import { SchoolShell } from "@/components/school-shell";
 import { MetricCard } from "@/components/metric-card";
 import { StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -56,6 +57,14 @@ export default function DashboardPage() {
 
   if (!user || user.role !== "admin") return null;
 
+  const subjectPerformance = [
+    { subject: "English", score: summary?.avgEnglish ?? 0, fill: "#3b82f6" },
+    { subject: "Mathematics", score: summary?.avgMath ?? 0, fill: "#10b981" },
+    { subject: "EVS / Science", score: summary?.avgScienceEvs ?? 0, fill: "#f97316" },
+    { subject: "Telugu", score: summary?.avgTelugu ?? 0, fill: "#f59e0b" },
+    { subject: "Hindi", score: summary?.avgHindi ?? 0, fill: "#8b5cf6" },
+  ];
+
   return (
     <SchoolShell
       title="Admin Dashboard"
@@ -83,6 +92,50 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-6 pt-6">
+          <div className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-sm">
+            <div className="flex items-start justify-between border-b border-slate-50 p-6">
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <Languages className="h-4 w-4 text-primary" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Subject Performance</p>
+                </div>
+                <h2 className="text-xl font-black tracking-tight text-slate-900">Average Scores Today</h2>
+              </div>
+            </div>
+            <div className="grid gap-6 p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={subjectPerformance} margin={{ top: 8, right: 12, left: -18, bottom: 0 }}>
+                    <XAxis dataKey="subject" tickLine={false} axisLine={false} tick={{ fill: "#475569", fontSize: 12, fontWeight: 700 }} />
+                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }} />
+                    <Tooltip
+                      formatter={(value: number | string) => {
+                        const numericValue = typeof value === "number" ? value : Number(value);
+                        return [Number.isFinite(numericValue) ? numericValue.toFixed(1) : "—", "Average Score"];
+                      }}
+                      contentStyle={{ borderRadius: 18, border: "1px solid #e2e8f0", boxShadow: "0 18px 40px rgba(15,23,42,0.12)" }}
+                    />
+                    <Bar dataKey="score" radius={[14, 14, 6, 6]} maxBarSize={52}>
+                      {subjectPerformance.map((item) => (
+                        <Cell key={item.subject} fill={item.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid gap-3">
+                {subjectPerformance.map((item) => (
+                  <div key={item.subject} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">{item.subject}</p>
+                    <p className="mt-2 text-2xl font-black text-slate-900">
+                      {typeof item.score === "number" ? item.score.toFixed(1) : "—"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-sm">
             <div className="flex items-start justify-between border-b border-slate-50 p-6">
               <div>

@@ -1,6 +1,6 @@
 export interface Question {
   id: number
-  subject: "english" | "mathematics" | "evs"
+  subject: "english" | "mathematics" | "evs" | "science" | "telugu" | "hindi"
   question: string
   options: string[]
   passageGroup?: string

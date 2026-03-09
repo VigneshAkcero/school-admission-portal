@@ -107,7 +107,21 @@ export default function PrincipalPage() {
 
   function exportApprovedCsv() {
     const approved = results.filter((row) => row.status === "approved");
-    const header = ["Student Name", "Parent Name", "Mobile", "Grade", "Test Code", "Applied Date", "Status", "English Score", "Math Score", "Science/EVS Score", "Score Percentage"];
+    const header = [
+      "Student Name",
+      "Parent Name",
+      "Mobile",
+      "Grade",
+      "Test Code",
+      "Applied Date",
+      "Status",
+      "English Score",
+      "Math Score",
+      "Science/EVS Score",
+      "Telugu Score",
+      "Hindi Score",
+      "Score Percentage",
+    ];
     const lines = [header.join(",")];
     approved.forEach((row) => {
       lines.push(
@@ -122,6 +136,8 @@ export default function PrincipalPage() {
           row.score_english ?? 0,
           row.score_math ?? 0,
           row.score_science_evs ?? 0,
+          row.score_telugu ?? 0,
+          row.score_hindi ?? 0,
           `${row.score_percentage ?? 0}%`
         ]
           .map((value) => `"${String(value).replace(/"/g, '""')}"`)

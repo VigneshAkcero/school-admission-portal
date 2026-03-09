@@ -27,6 +27,8 @@ export interface ApplicantRow {
   score_english?: number | null;
   score_math?: number | null;
   score_science_evs?: number | null;
+  score_telugu?: number | null;
+  score_hindi?: number | null;
   total_questions?: number | null;
   score_percentage?: number | null;
   decision_at?: string | null;
@@ -41,6 +43,11 @@ export interface AdminDashboardSummary {
   pendingApplicants: number;
   scheduledTests: number;
   completedPendingReview: number;
+  avgEnglish?: number | null;
+  avgMath?: number | null;
+  avgScienceEvs?: number | null;
+  avgTelugu?: number | null;
+  avgHindi?: number | null;
   latestStudents: Array<{
     id?: string;
     student_name: string;
@@ -75,6 +82,10 @@ export interface MonitorSession {
   evs_total?: number;
   science_answered?: number;
   science_total?: number;
+  telugu_answered?: number;
+  telugu_total?: number;
+  hindi_answered?: number;
+  hindi_total?: number;
 }
 
 export interface TabSwitchEvent {

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaBuddy | Student Login</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="auth.js"></script>
+    <style>
+        .login-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 3rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 450px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .login-header .logo {
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .test-code-input {
+            font-size: 1.25rem;
+            text-align: center;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .test-code-input::placeholder {
+            letter-spacing: normal;
+            font-weight: 400;
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo">
+                    <i data-lucide="graduation-cap"></i>
+                    <span class="logo-text">AlphaBuddy</span>
+                </div>
+                <h1 class="title-outfit">Student Test Portal</h1>
+                <p class="text-muted mt-2">Enter your unique test code to begin</p>
+            </div>
+            
+            <form id="studentLoginForm">
+                <div class="admin-form-group">
+                    <label for="testCode">Unique Test Code</label>
+                    <input type="text" id="testCode" class="admin-input test-code-input" placeholder="MPSYYYYMMGX" required autocomplete="off">
+                    <p id="loginError" class="metric-note mt-2" style="color: var(--danger); display: none;">Invalid test code. Please check and try again.</p>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-full mt-5">
+                    <i data-lucide="play-circle"></i> Start Examination
+                </button>
+            </form>
+            
+            <div class="mt-8 text-center" style="font-size: 0.85rem; color: var(--text-muted);">
+                <p>Having trouble? Contact your school administrator.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        lucide.createIcons();
+        
+        const loginForm = document.getElementById('studentLoginForm');
+        const loginError = document.getElementById('loginError');
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('testCode').value.trim().toUpperCase();
+            
+            try {
+                const student = await PortalData.verifyStudent(code);
+                
+                if (student) {
+                    // Store active student in session
+                    sessionStorage.setItem('active_student', JSON.stringify(student));
+                    window.location.href = 'test_portal.html';
+                } else {
+                    loginError.style.display = 'block';
+                    document.getElementById('testCode').classList.add('error');
+                }
+            } catch (err) {
+                console.error("Verification failed", err);
+                loginError.textContent = "Server error. Please try again later.";
+                loginError.style.display = 'block';
+            }
+        });
+
+        // Hide error on input
+        document.getElementById('testCode').addEventListener('input', () => {
+            loginError.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

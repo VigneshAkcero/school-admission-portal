@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaBuddy | Examination Portal</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            overflow: hidden;
+            background: var(--bg-main);
+        }
+
+        .test-header {
+            height: 70px;
+            background: var(--bg-side);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            box-shadow: var(--shadow-md);
+            z-index: 100;
+            position: relative;
+        }
+
+        .test-container {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            height: calc(100vh - 70px);
+        }
+
+        .pdf-viewer {
+            background: #525659;
+            border-right: 1px solid var(--border-color);
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .pdf-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .answer-sheet {
+            background: var(--surface-1);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .answer-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--surface-2);
+        }
+
+        .questions-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        .question-row {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--surface-3);
+            transition: background 0.2s;
+        }
+
+        .question-row:hover {
+            background: var(--surface-2);
+        }
+
+        .q-number {
+            width: 36px;
+            height: 36px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .options-group {
+            display: flex;
+            gap: 1rem;
+            flex: 1;
+        }
+
+        .option-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            background: var(--surface-1);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .option-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .option-btn.selected {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(var(--primary-h), var(--primary-s), var(--primary-l), 0.3);
+        }
+
+        .test-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--border-color);
+            background: var(--surface-2);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .timer-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-family: monospace;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .timer-urgent {
+            color: #fca5a5;
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .avatar-sm {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <header class="test-header">
+        <div class="logo">
+            <i data-lucide="graduation-cap"></i>
+            <span class="logo-text" style="color: #fff;">AlphaBuddy</span>
+        </div>
+        
+        <div class="timer-badge" id="testTimer">
+            <i data-lucide="clock" style="width: 20px;"></i>
+            <span id="timerText">60:00</span>
+        </div>
+        
+        <div class="student-info">
+            <div style="text-align: right;">
+                <div id="studentNameDisplay" style="font-weight: 600; font-size: 0.9rem;">Student Name</div>
+                <div id="testCodeDisplay" style="font-size: 0.75rem; color: #94a3b8;">#CODE</div>
+            </div>
+            <div class="avatar-sm" id="studentAvatar">ST</div>
+        </div>
+    </header>
+
+    <div class="test-container">
+        <!-- PDF Viewer Section -->
+        <div class="pdf-viewer">
+            <iframe id="pdfFrame" class="pdf-frame" src=""></iframe>
+            <div id="pdfFallback" style="display: none; padding: 2rem; color: #fff; text-align: center;">
+                <p>Loading question paper...</p>
+            </div>
+        </div>
+
+        <!-- Answer Sheet Section -->
+        <div class="answer-sheet">
+            <div class="answer-header">
+                <h3 class="title-outfit">Digital Answer Sheet</h3>
+                <p class="text-muted" style="font-size: 0.85rem;">Select one option for each question.</p>
+            </div>
+            
+            <div class="questions-scroll" id="questionsList">
+                <!-- Populated by test_logic.js -->
+            </div>
+            
+            <div class="test-footer">
+                <button id="submitTestBtn" class="btn btn-primary" style="padding: 0.75rem 2.5rem;">
+                    <i data-lucide="check-square"></i> Submit Examination
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay for instructions/confirmation -->
+    <div id="modalOverlay" class="app-container" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center;">
+        <div class="login-card" style="max-width: 500px;">
+            <div id="modalContent">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script src="test_logic.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

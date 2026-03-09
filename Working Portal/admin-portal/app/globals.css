@@ -1,0 +1,134 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --background: oklch(0.99 0.005 240);
+  --foreground: oklch(0.2 0.02 240);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #2563eb;
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.25 0.12 265);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.9 0.1 260);
+  --accent-foreground: oklch(0.25 0.12 265);
+  --border: oklch(0.9 0.02 240);
+  --input: oklch(0.9 0.02 240);
+  --ring: oklch(0.6 0.25 260 / 0.5);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --success: oklch(0.6 0.15 145);
+  --warning: oklch(0.8 0.15 85);
+  --review: oklch(0.7 0.2 45);
+}
+
+.dark {
+  --background: oklch(0.15 0.02 240);
+  --foreground: oklch(0.95 0.01 240);
+  --card: oklch(0.18 0.02 240);
+  --card-foreground: oklch(0.95 0.01 240);
+  --popover: oklch(0.18 0.02 240);
+  --popover-foreground: oklch(0.95 0.01 240);
+  --primary: oklch(0.65 0.2 260);
+  --primary-foreground: oklch(0.98 0.01 240);
+  --accent: oklch(0.32 0.08 265);
+  --accent-foreground: oklch(0.96 0.01 240);
+  --border: oklch(0.25 0.02 240);
+  --input: oklch(0.25 0.02 240);
+  --glass-bg: rgba(20, 20, 30, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+@theme inline {
+  --font-sans: "Inter", "Outfit", sans-serif;
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-review: var(--review);
+}
+
+@layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  body {
+    background-image:
+      radial-gradient(at 0% 0%, oklch(0.92 0.02 255 / 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, oklch(0.92 0.02 210 / 0.05) 0px, transparent 50%);
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.14);
+  }
+
+  .gradient-text {
+    background-image: linear-gradient(90deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .premium-card {
+    background: white;
+    border: 1px solid oklch(0.92 0.02 240);
+    border-radius: 2rem;
+    padding: 2rem;
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.05),
+      0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s ease;
+  }
+
+  .premium-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.08),
+      0 10px 10px -5px rgba(0, 0, 0, 0.03);
+  }
+
+  .tab-switch-alert {
+    animation: alert-red 2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@keyframes alert-red {
+
+  0%,
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  10%,
+  90% {
+    background-color: oklch(0.6 0.2 25 / 0.2);
+    box-shadow: 0 0 20px oklch(0.6 0.2 25 / 0.3);
+    border-color: oklch(0.6 0.2 25);
+  }
+}
+
+.animate-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

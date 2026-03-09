@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaBuddy | Performance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="graduation-cap"></i>
+                <span class="logo-text">AlphaBuddy</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span class="nav-text">Principal Dashboard</span>
+                </a>
+                <a href="admin.html" class="nav-item">
+                    <i data-lucide="shield-check"></i>
+                    <span class="nav-text">Admin Dashboard</span>
+                </a>
+                <a href="applicants.html" class="nav-item">
+                    <i data-lucide="users"></i>
+                    <span class="nav-text">Applicants</span>
+                </a>
+                <a href="performance.html" class="nav-item active">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span class="nav-text">Performance</span>
+                </a>
+                <a href="tests.html" class="nav-item">
+                    <i data-lucide="file-text"></i>
+                    <span class="nav-text">Tests</span>
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i data-lucide="settings"></i>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <i data-lucide="log-out"></i>
+                    <span class="nav-text">Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <header>
+                <div class="header-left">
+                    <h1>Performance Analytics</h1>
+                    <p>In-depth analysis of test results and student proficiency.</p>
+                </div>
+                <div class="avatar">AD</div>
+            </header>
+
+            <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="chart-container animate-fade-in">
+                    <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit', sans-serif;">Score Distribution</h3>
+                    <canvas id="distChart" height="300"></canvas>
+                </div>
+                <div class="chart-container animate-fade-in" style="animation-delay: 0.1s;">
+                    <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit', sans-serif;">Passing Rate by Subject</h3>
+                    <canvas id="subjectBarChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <div class="stat-card animate-fade-in" style="margin-top: 2rem;">
+                <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit', sans-serif;">Insights Summary</h3>
+                <p style="color: var(--text-muted);">Overall applicant performance has seen a 15% increase in STEM related subjects compared to last year. Critical thinking scores remain stable with an average of 82/100.</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            // Distribution Chart
+            new Chart(document.getElementById('distChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Top Tier (90+)', 'High (75-90)', 'Average (60-75)', 'Below Pass (<60)'],
+                    datasets: [{
+                        data: [25, 45, 20, 10],
+                        backgroundColor: ['#4f46e5', '#818cf8', '#c7d2fe', '#f1f5f9']
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: true,
+                    aspectRatio: 1.5
+                }
+            });
+
+            // Subject Bar Chart
+            new Chart(document.getElementById('subjectBarChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Math', 'Science', 'English', 'Aptitude'],
+                    datasets: [{
+                        label: 'Pass %',
+                        data: [88, 75, 92, 84],
+                        backgroundColor: '#4f46e5',
+                        borderRadius: 6
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: true,
+                    aspectRatio: 1.5
+                }
+            });
+        });
+    </script>
+</body>
+</html>

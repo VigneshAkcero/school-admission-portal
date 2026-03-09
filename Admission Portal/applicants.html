@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaBuddy | Applicants</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="graduation-cap"></i>
+                <span class="logo-text">AlphaBuddy</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span class="nav-text">Principal Dashboard</span>
+                </a>
+                <a href="admin.html" class="nav-item">
+                    <i data-lucide="shield-check"></i>
+                    <span class="nav-text">Admin Dashboard</span>
+                </a>
+                <a href="applicants.html" class="nav-item active">
+                    <i data-lucide="users"></i>
+                    <span class="nav-text">Applicants</span>
+                </a>
+                <a href="performance.html" class="nav-item">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span class="nav-text">Performance</span>
+                </a>
+                <a href="tests.html" class="nav-item">
+                    <i data-lucide="file-text"></i>
+                    <span class="nav-text">Tests</span>
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i data-lucide="settings"></i>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <i data-lucide="log-out"></i>
+                    <span class="nav-text">Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <header>
+                <div class="header-left">
+                    <h1>Applicant Directory</h1>
+                    <p>Manage and review all student applications.</p>
+                </div>
+                <div class="user-profile">
+                    <div class="search-box">
+                        <i data-lucide="search"></i>
+                        <input type="text" placeholder="Search applicant...">
+                    </div>
+                    <div class="avatar">AD</div>
+                </div>
+            </header>
+
+            <div class="table-container animate-fade-in">
+                <div class="chart-header">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <h3 style="font-family: 'Outfit', sans-serif;">All Applicants</h3>
+                        <select id="statusFilter" class="surface-select">
+                            <option value="All">All Status</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                        <i data-lucide="user-plus" style="width: 16px;"></i> Add New
+                    </button>
+                </div>
+                <table id="applicantsTable">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Application ID</th>
+                            <th>Test Score</th>
+                            <th>Applied Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableBody = document.querySelector('#applicantsTable tbody');
+            const statusFilter = document.getElementById('statusFilter');
+            let currentFilter = '';
+
+            const render = () => {
+                const status = statusFilter.value;
+                const apps = PortalData.getApplicants().filter(a => {
+                    const matchesSearch = a.name.toLowerCase().includes(currentFilter.toLowerCase()) || 
+                                        a.id.toLowerCase().includes(currentFilter.toLowerCase());
+                    const matchesStatus = status === 'All' || a.status === status;
+                    return matchesSearch && matchesStatus;
+                });
+
+                tableBody.innerHTML = apps.map(app => `
+                    <tr>
+                        <td class="table-avatar-cell">
+                            <div class="table-avatar">${app.avatar}</div>
+                            ${app.name}
+                        </td>
+                        <td>#${app.id}</td>
+                        <td>${app.score}/100</td>
+                        <td>${app.date}</td>
+                        <td><span class="badge badge-${app.status.toLowerCase()}">${app.status}</span></td>
+                        <td>
+                            <button class="icon-action primary"><i data-lucide="eye" style="width: 18px;"></i></button>
+                            <button class="icon-action muted"><i data-lucide="more-vertical" style="width: 18px;"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            };
+
+            statusFilter.addEventListener('change', render);
+            window.addEventListener('portalSearch', (e) => {
+                currentFilter = e.detail;
+                render();
+            });
+
+            render();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaBuddy | Tests</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="graduation-cap"></i>
+                <span class="logo-text">AlphaBuddy</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span class="nav-text">Principal Dashboard</span>
+                </a>
+                <a href="admin.html" class="nav-item">
+                    <i data-lucide="shield-check"></i>
+                    <span class="nav-text">Admin Dashboard</span>
+                </a>
+                <a href="applicants.html" class="nav-item">
+                    <i data-lucide="users"></i>
+                    <span class="nav-text">Applicants</span>
+                </a>
+                <a href="performance.html" class="nav-item">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span class="nav-text">Performance</span>
+                </a>
+                <a href="tests.html" class="nav-item active">
+                    <i data-lucide="file-text"></i>
+                    <span class="nav-text">Tests</span>
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i data-lucide="settings"></i>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <i data-lucide="log-out"></i>
+                    <span class="nav-text">Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <header>
+                <div class="header-left">
+                    <h1>Test Management</h1>
+                    <p>Manage active and archived entrance exams.</p>
+                </div>
+                <div class="avatar">AD</div>
+            </header>
+
+            <div class="table-container animate-fade-in">
+                <div class="chart-header">
+                    <h3 style="font-family: 'Outfit', sans-serif;">Active & Recent Tests</h3>
+                </div>
+                <table id="testsTable">
+                    <thead>
+                        <tr>
+                            <th>Test Name</th>
+                            <th>Subject</th>
+                            <th>Participants</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const render = () => {
+                const tests = PortalData.getTests();
+                const tbody = document.querySelector('#testsTable tbody');
+                tbody.innerHTML = tests.map(test => `
+                    <tr>
+                        <td style="font-weight: 600;">${test.name}</td>
+                        <td>${test.subject}</td>
+                        <td>${test.participants}</td>
+                        <td><span class="badge badge-${test.status === 'Active' ? 'success' : 'pending'}">${test.status}</span></td>
+                        <td style="width: 200px;">
+                            <div class="test-progress-bar" style="margin-top: 0;">
+                                <div class="progress-fill" style="width: ${test.progress}%"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            }
+            render();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

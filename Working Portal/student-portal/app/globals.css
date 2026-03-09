@@ -1,0 +1,126 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --background: oklch(0.99 0.005 240);
+  --foreground: oklch(0.2 0.02 240);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.55 0.25 260);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.25 0.12 265);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.9 0.1 260);
+  --accent-foreground: oklch(0.25 0.12 265);
+  --border: oklch(0.9 0.02 240);
+  --input: oklch(0.9 0.02 240);
+  --ring: oklch(0.6 0.25 260 / 0.5);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --success: #2e7d32;
+  --warning: #7b1fa2;
+  --review: #ff9800;
+  /* For 'Marked for Review but NOT answered' */
+  --review-answered: #7b1fa2;
+  /* For 'Answered and Marked for Review' */
+  --not-answered: #c62828;
+}
+
+.dark {
+  --background: oklch(0.15 0.02 240);
+  --foreground: oklch(0.95 0.01 240);
+  --card: oklch(0.18 0.02 240);
+  --card-foreground: oklch(0.95 0.01 240);
+  --popover: oklch(0.18 0.02 240);
+  --popover-foreground: oklch(0.95 0.01 240);
+  --primary: oklch(0.65 0.2 260);
+  --primary-foreground: oklch(0.98 0.01 240);
+  --accent: oklch(0.32 0.08 265);
+  --accent-foreground: oklch(0.96 0.01 240);
+  --border: oklch(0.25 0.02 240);
+  --input: oklch(0.25 0.02 240);
+  --glass-bg: rgba(20, 20, 30, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+@theme inline {
+  --font-sans: "Inter", "Outfit", sans-serif;
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-review: var(--review);
+  --color-review-answered: var(--review-answered);
+  --color-not-answered: var(--not-answered);
+}
+
+@layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  body {
+    background-image:
+      radial-gradient(at 0% 0%, oklch(0.92 0.02 255 / 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, oklch(0.92 0.02 210 / 0.05) 0px, transparent 50%);
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.14);
+  }
+
+  .gradient-text {
+    background-image: linear-gradient(90deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .premium-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.14);
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .premium-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 32px 100px rgba(15, 23, 42, 0.18);
+  }
+
+  .question-dot {
+    @apply flex h-10 w-10 items-center justify-center rounded-xl border text-sm font-bold shadow-sm transition-all duration-300;
+  }
+}
+
+.animate-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

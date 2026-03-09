@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaBuddy | Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="graduation-cap"></i>
+                <span class="logo-text">AlphaBuddy</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span class="nav-text">Principal Dashboard</span>
+                </a>
+                <a href="admin.html" class="nav-item">
+                    <i data-lucide="shield-check"></i>
+                    <span class="nav-text">Admin Dashboard</span>
+                </a>
+                <a href="applicants.html" class="nav-item">
+                    <i data-lucide="users"></i>
+                    <span class="nav-text">Applicants</span>
+                </a>
+                <a href="performance.html" class="nav-item">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span class="nav-text">Performance</span>
+                </a>
+                <a href="tests.html" class="nav-item">
+                    <i data-lucide="file-text"></i>
+                    <span class="nav-text">Tests</span>
+                </a>
+                <a href="settings.html" class="nav-item active">
+                    <i data-lucide="settings"></i>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <i data-lucide="log-out"></i>
+                    <span class="nav-text">Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <header>
+                <div class="header-left">
+                    <h1>Settings</h1>
+                    <p>Configure application alerts and portal preferences.</p>
+                </div>
+                <div class="avatar">AD</div>
+            </header>
+
+            <div class="form-container animate-fade-in">
+                <h3 style="margin-bottom: 2rem; font-family: 'Outfit', sans-serif;">System Configuration</h3>
+                
+                <div class="admin-form-group">
+                    <label>Dashboard Refresh Rate (Seconds)</label>
+                    <input type="number" class="admin-input" value="30">
+                </div>
+
+                <div class="admin-form-group" style="display: flex; align-items: center; gap: 1rem;">
+                    <input type="checkbox" id="emailAlerts" checked>
+                    <label for="emailAlerts" style="margin-bottom: 0;">Enable Email Notifications for New Applications</label>
+                </div>
+
+                <div class="admin-form-group" style="display: flex; align-items: center; gap: 1rem;">
+                    <input type="checkbox" id="darkMode">
+                    <label for="darkMode" style="margin-bottom: 0;">Force Dark Mode Appearance</label>
+                </div>
+
+                <button class="btn btn-primary">Save Preferences</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            document.querySelector('.btn-primary').onclick = () => alert('Settings saved successfully!');
+        });
+    </script>
+</body>
+</html>

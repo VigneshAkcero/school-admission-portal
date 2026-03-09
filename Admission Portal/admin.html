@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaBuddy | Admin Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Main Style -->
+    <link rel="stylesheet" href="style.css">
+    <script src="auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="graduation-cap"></i>
+                <span class="logo-text">AlphaBuddy</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span class="nav-text">Principal Dashboard</span>
+                </a>
+                <a href="admin.html" class="nav-item active">
+                    <i data-lucide="shield-check"></i>
+                    <span class="nav-text">Admin Dashboard</span>
+                </a>
+                <a href="applicants.html" class="nav-item">
+                    <i data-lucide="users"></i>
+                    <span class="nav-text">Applicants</span>
+                </a>
+                <a href="performance.html" class="nav-item">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span class="nav-text">Performance</span>
+                </a>
+                <a href="tests.html" class="nav-item">
+                    <i data-lucide="file-text"></i>
+                    <span class="nav-text">Tests</span>
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i data-lucide="settings"></i>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <i data-lucide="log-out"></i>
+                    <span class="nav-text">Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <header>
+                <div class="header-left">
+                    <h1>Admin Management</h1>
+                    <p>Generate new tests and monitor active examination sessions.</p>
+                </div>
+                <div class="user-profile">
+                    <div class="notifications icon-button">
+                        <i data-lucide="bell" style="width: 20px; color: var(--text-main);"></i>
+                    </div>
+                    <div class="avatar">AD</div>
+                </div>
+            </header>
+            
+            <!-- Admin Stats Row -->
+            <div class="dashboard-grid animate-fade-in" style="animation-delay: 0.1s;">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: var(--primary-light);">
+                        <i data-lucide="file-text" style="color: var(--primary); width: 20px;"></i>
+                    </div>
+                    <div class="stat-value" id="totalTests">0</div>
+                    <div class="stat-label">Total Test Sessions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #dcfce7;">
+                        <i data-lucide="activity" style="color: #166534; width: 20px;"></i>
+                    </div>
+                    <div class="stat-value" id="activeParticipants">0</div>
+                    <div class="stat-label">Active Participants</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #fef9c3;">
+                        <i data-lucide="clock" style="color: #854d0e; width: 20px;"></i>
+                    </div>
+                    <div class="stat-value" id="avgCompletion">0%</div>
+                    <div class="stat-label">Avg. Completion</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #fee2e2;">
+                        <i data-lucide="alert-triangle" style="color: #991b1b; width: 20px;"></i>
+                    </div>
+                    <div class="stat-value" id="scheduledTests">0</div>
+                    <div class="stat-label">Upcoming Sessions</div>
+                </div>
+            </div>
+
+            <!-- Student Registration Section -->
+            <div class="charts-grid animate-fade-in" style="animation-delay: 0.15s; grid-template-columns: 1fr 1fr;">
+                 <div class="form-container" style="margin-bottom: 0;">
+                    <h3 class="title-outfit mb-4">Student Registration</h3>
+                    <form id="studentRegistrationForm">
+                        <div class="admin-form-group">
+                            <label for="studentName">Student Name</label>
+                            <input type="text" id="studentName" class="admin-input" placeholder="Enter student's full name" required>
+                        </div>
+                        <div class="form-grid-two">
+                            <div class="admin-form-group">
+                                <label for="parentName">Parent Name</label>
+                                <input type="text" id="parentName" class="admin-input" placeholder="Parent/Guardian name" required>
+                            </div>
+                            <div class="admin-form-group">
+                                <label for="parentMobile">Parent Mobile Number</label>
+                                <input type="tel" id="parentMobile" class="admin-input" placeholder="e.g. 9876543210" required>
+                            </div>
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="studentGrade">Grade</label>
+                            <select id="studentGrade" class="admin-input">
+                                <option value="1">Grade 1</option>
+                                <option value="2">Grade 2</option>
+                                <option value="3">Grade 3</option>
+                                <option value="4">Grade 4</option>
+                                <option value="5">Grade 5</option>
+                                <option value="6">Grade 6</option>
+                                <option value="7">Grade 7</option>
+                                <option value="8">Grade 8</option>
+                                <option value="9">Grade 9</option>
+                                <option value="10">Grade 10</option>
+                                <option value="11">Grade 11</option>
+                                <option value="12">Grade 12</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i data-lucide="key-round"></i> Generate Test Code
+                        </button>
+                    </form>
+                </div>
+
+                <div class="table-container" style="height: 100%; min-height: 400px; overflow-y: auto;">
+                    <div class="chart-header">
+                        <h3 class="title-outfit">Recently Registered Students</h3>
+                    </div>
+                    <table style="min-width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Grade</th>
+                                <th>Test Code</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registeredStudentsList">
+                            <!-- Populated via admin.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <!-- Test Generation Form & Chart -->
+                <div class="form-chart-section animate-fade-in" style="animation-delay: 0.2s; display: grid; grid-template-rows: auto 1fr; gap: 1.5rem;">
+                    <div class="form-container" style="margin-bottom: 0;">
+                        <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit', sans-serif;">Generate New Test Session</h3>
+                        <form id="generateTestForm">
+                            <div class="admin-form-group">
+                                <label for="testName">Test Title</label>
+                                <input type="text" id="testName" class="admin-input" placeholder="e.g. Mathematics Proficiency Level 1" required>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="admin-form-group">
+                                    <label for="testDate">Date</label>
+                                    <input type="date" id="testDate" class="admin-input" required>
+                                </div>
+                                <div class="admin-form-group">
+                                    <label for="testTime">Duration (Mins)</label>
+                                    <input type="number" id="testTime" class="admin-input" placeholder="60" required>
+                                </div>
+                            </div>
+                            <div class="admin-form-group">
+                                <label for="testSubject">Subject Category</label>
+                                <select id="testSubject" class="admin-input">
+                                    <option>Mathematics</option>
+                                    <option>Science</option>
+                                    <option>English Literature</option>
+                                    <option>Aptitude & Logic</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                                <i data-lucide="plus-circle" style="width: 18px;"></i> Generate Test Session
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="chart-container" style="height: 380px !important;">
+                        <div class="chart-header">
+                            <h3 style="font-family: 'Outfit', sans-serif;">Test Distribution</h3>
+                        </div>
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Active Monitor -->
+                <div class="monitor-section animate-fade-in" style="animation-delay: 0.2s;">
+                    <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit', sans-serif;">Live Test Monitor</h3>
+                    <div id="activeTestList">
+                        <!-- Card 1 -->
+                        <div class="stat-card monitor-card animate-fade-in" style="margin-bottom: 1rem; animation-delay: 0.3s;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <h4 style="font-weight: 700;">Science Entrance 2026</h4>
+                                    <p style="font-size: 0.8rem; color: var(--text-muted);">Session ID: #SCI-772</p>
+                                </div>
+                                <span class="badge badge-success" style="display: flex; align-items: center; gap: 4px;">
+                                    <span class="status-indicator status-active"></span> Active
+                                </span>
+                            </div>
+                            <div style="margin-top: 1.25rem;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                    <span>Participants: <strong>428</strong></span>
+                                    <span>Completion: <strong>65%</strong></span>
+                                </div>
+                                <div class="test-progress-bar">
+                                    <div class="progress-fill" style="width: 65%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="stat-card monitor-card animate-fade-in" style="margin-bottom: 1rem; animation-delay: 0.4s; border-left-color: var(--warning);">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <h4 style="font-weight: 700;">Logic & Reasoning B</h4>
+                                    <p style="font-size: 0.8rem; color: var(--text-muted);">Session ID: #LOG-102</p>
+                                </div>
+                                <span class="badge badge-pending" style="display: flex; align-items: center; gap: 4px;">
+                                    <span class="status-indicator status-scheduled"></span> Scheduled
+                                </span>
+                            </div>
+                            <div style="margin-top: 1.25rem;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                    <span>Registered: <strong>1,102</strong></span>
+                                    <span>Starts in: <strong>2h 15m</strong></span>
+                                </div>
+                                <div class="test-progress-bar">
+                                    <div class="progress-fill" style="width: 0%; background: #94a3b8;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="shared.js"></script>
+    <script src="admin.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

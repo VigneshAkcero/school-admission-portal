@@ -1,0 +1,29 @@
+# Tasks
+
+- [x] Project Initialization
+    - [x] Create project structure (index.html, style.css, script.js)
+- [x] Design System Setup
+    - [x] Configure CSS variables (colors, spacing, glassmorphism)
+    - [x] Setup global styles and typography (Inter/Outfit)
+- [x] Layout Implementation
+    - [x] Create Dashboard Layout (Sidebar + Main Content)
+    - [x] Implement Responsive Sidebar
+- [x] Dashboard Components
+    - [x] Stat Cards (Analytics Overview)
+    - [x] Performance Charts (Subject-wise, Admission Trends)
+    - [x] Recent Applications Table
+    - [x] Top Performers List
+- [x] Admin Dashboard Implementation
+    - [x] Create [admin.html](file:///Users/akcerooffice/Desktop/Admission%20Portal/admin.html) structure
+    - [x] Implement Test Generation Form
+    - [x] Create Active Test Monitoring view
+    - [x] Add navigation between Principal and Admin views
+- [x] Admin Dashboard Logic
+    - [x] Implement [admin.js](file:///Users/akcerooffice/Desktop/Admission%20Portal/admin.js) for test creation simulation
+    - [x] Add real-time monitoring simulation (active tests)
+- [x] Refinement & Polish (Admin)
+    - [x] UI/UX audit for Admin Dashboard
+    - [x] Responsive verification for Admin views
+- [x] Verification
+    - [x] Verify responsiveness
+    - [x] Ensure all features are working as intended

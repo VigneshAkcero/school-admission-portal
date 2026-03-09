@@ -157,9 +157,27 @@ async function migrate() {
       question_id VARCHAR(64) NOT NULL,
       selected_option CHAR(1) NULL,
       is_marked_for_review BOOLEAN NOT NULL DEFAULT false,
+      answer_status VARCHAR(32) NOT NULL DEFAULT 'NOT_VISITED',
       answered_at TIMESTAMP NOT NULL DEFAULT now(),
       UNIQUE(test_session_id, question_id)
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE answers
+    ADD COLUMN IF NOT EXISTS answer_status VARCHAR(32) NOT NULL DEFAULT 'NOT_VISITED';
+  `);
+
+  await pool.query(`
+    UPDATE answers
+    SET answer_status = CASE
+      WHEN is_marked_for_review = true AND selected_option IS NOT NULL THEN 'ANSWERED_MARKED'
+      WHEN is_marked_for_review = true THEN 'MARKED'
+      WHEN selected_option IS NOT NULL THEN 'ANSWERED'
+      ELSE 'NOT_VISITED'
+    END
+    WHERE answer_status IS NULL
+       OR answer_status NOT IN ('NOT_VISITED', 'ANSWERED', 'ANSWERED_MARKED', 'MARKED', 'NOT_ANSWERED');
   `);
 
   await pool.query(`
@@ -196,6 +214,16 @@ async function migrate() {
   `);
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_answers_test_session ON answers(test_session_id);
+  `);
+
+  await pool.query(`
+    ALTER TABLE applicants
+    ADD COLUMN IF NOT EXISTS feedback_rating INTEGER NULL CHECK (feedback_rating BETWEEN 1 AND 5);
+  `);
+
+  await pool.query(`
+    ALTER TABLE applicants
+    ADD COLUMN IF NOT EXISTS feedback_submitted_at TIMESTAMP NULL;
   `);
 
   await pool.query(`

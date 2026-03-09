@@ -5,6 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "node --watch src/server.js",
+    "dev:https": "HTTPS=true node --watch src/server.js",
     "start": "node src/server.js",
     "check": "node --check src/server.js",
     "create-users": "node src/db/createAdminUsers.js"

@@ -27,9 +27,9 @@ export function PrincipalShell({
   const navItems = useMemo(() => principalNav, []);
 
   return (
-    <div className="min-h-screen animate-in bg-background">
-      <div className="flex min-h-screen">
-        <aside className="hidden w-[262px] shrink-0 flex-col justify-between border-r border-slate-800 bg-slate-900 px-5 py-7 text-white lg:flex">
+    <div className="h-screen overflow-hidden animate-in bg-white">
+      <div className="flex h-screen overflow-hidden bg-white">
+        <aside className="fixed inset-y-0 left-0 z-30 hidden w-[262px] flex-col justify-between border-r border-slate-800 bg-slate-900 px-5 py-7 text-white lg:flex">
           <div>
             <div className="mb-10 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/20 text-base font-black text-primary">
@@ -73,14 +73,14 @@ export function PrincipalShell({
           </Button>
         </aside>
 
-        <main className="flex-1 p-4 md:p-6 xl:p-8">
+        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-white p-4 md:p-6 xl:p-8 lg:ml-[262px]">
           <header className="mb-8 overflow-visible">
             <h1 className="pb-2 text-3xl font-black leading-[1.14] tracking-tight text-[#406fcb] md:text-4xl lg:text-5xl">
               {title}
             </h1>
           </header>
 
-          <div className="relative">
+          <div className="relative min-w-0">
             {children}
           </div>
         </main>

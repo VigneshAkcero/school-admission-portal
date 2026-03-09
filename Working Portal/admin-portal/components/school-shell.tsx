@@ -37,10 +37,10 @@ export function SchoolShell({
   const hasSidebar = user?.role === "admin";
 
   return (
-    <div className="min-h-screen animate-in bg-background">
-      <div className="flex min-h-screen">
+    <div className="h-screen overflow-hidden animate-in bg-white">
+      <div className="flex h-screen overflow-hidden bg-white">
         {hasSidebar && (
-          <aside className="hidden w-[262px] shrink-0 flex-col justify-between border-r border-slate-800 bg-slate-900 px-5 py-7 text-white lg:flex">
+          <aside className="fixed inset-y-0 left-0 z-30 hidden w-[262px] flex-col justify-between border-r border-slate-800 bg-slate-900 px-5 py-7 text-white lg:flex">
             <div>
               <div className="mb-10 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/20 text-base font-black text-primary">
@@ -84,7 +84,12 @@ export function SchoolShell({
           </aside>
         )}
 
-        <main className={cn("flex-1 p-4 md:p-6 xl:p-8", !hasSidebar && "mx-auto w-full max-w-[1500px]")}>
+        <main
+          className={cn(
+            "min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-white p-4 md:p-6 xl:p-8",
+            hasSidebar ? "lg:ml-[262px]" : "mx-auto w-full max-w-[1500px]"
+          )}
+        >
           <header className="mb-8 overflow-visible">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <h1 className="gradient-text pb-2 text-3xl font-black leading-[1.14] tracking-tight text-slate-900 md:text-4xl lg:text-5xl">
@@ -108,7 +113,7 @@ export function SchoolShell({
             )}
           </header>
 
-          <div className="relative">
+          <div className="relative min-w-0">
             {children}
           </div>
         </main>

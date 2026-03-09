@@ -137,12 +137,22 @@ export default function ApplicantsPage() {
 
   async function generateCode(applicant: ApplicantRow) {
     if (!token) return;
-    const response = await apiRequest<{ testCode: string }>(`/api/admin/applicants/${applicant.id}/generate-code`, {
+    const response = await apiRequest<{ testCode: string; applicant: ApplicantRow }>(`/api/admin/applicants/${applicant.id}/generate-code`, {
       method: "POST",
       token,
     });
+    setApplicants((current) =>
+      current.map((row) =>
+        row.id === applicant.id
+          ? {
+              ...row,
+              ...response.applicant,
+              status: adminVisibleStatus(response.applicant.status),
+            }
+          : row,
+      ),
+    );
     setGenerated({ name: applicant.student_name, code: response.testCode });
-    await load();
   }
 
   async function confirmRevoke() {

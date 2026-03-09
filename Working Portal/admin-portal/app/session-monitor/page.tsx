@@ -45,6 +45,7 @@ export default function SessionMonitorPage() {
   const { user, token, isReady } = useAuth();
   const [sessionsByCode, setSessionsByCode] = useState<Record<string, SessionWithExtras>>({});
   const [streamMap, setStreamMap] = useState<Record<string, MediaStream>>({});
+  const [selectedSessionCode, setSelectedSessionCode] = useState<string | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -242,6 +243,7 @@ export default function SessionMonitorPage() {
       ),
     [sessionsByCode],
   );
+  const selectedSession = selectedSessionCode ? sessionsByCode[selectedSessionCode] : null;
 
   useEffect(() => {
     if (wsRef.current?.readyState !== WebSocket.OPEN) return;
@@ -262,10 +264,16 @@ export default function SessionMonitorPage() {
           <p className="text-sm font-bold text-slate-700">{sessions.length} live students</p>
         </div>
         {sessions.length ? (
-          <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(300px,440px))]">
+          <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(340px,1fr))]">
             {sessions.map((session) => (
-              <div key={session.test_code} className="w-full max-w-[440px] overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
-                <div className="aspect-[16/9] max-h-[240px] overflow-hidden bg-slate-950">
+              <button
+                key={session.test_code}
+                type="button"
+                onClick={() => setSelectedSessionCode(session.test_code)}
+                className="w-full overflow-hidden rounded-[24px] border border-slate-200 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="lg:grid lg:grid-cols-[minmax(340px,540px)_minmax(0,420px)] lg:items-start">
+                  <div className="aspect-[16/9] max-h-[240px] overflow-hidden bg-slate-950 lg:max-h-none">
                   {streamMap[session.test_code] ? (
                     <video
                       autoPlay
@@ -286,44 +294,47 @@ export default function SessionMonitorPage() {
                       </div>
                     </div>
                   )}
-                </div>
-                <div className="space-y-4 px-5 py-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-lg font-black text-slate-900">{session.student_name}</p>
+                  </div>
+                  <div className="space-y-4 px-5 py-4 lg:max-w-[420px] lg:px-6 lg:py-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="truncate text-lg font-black text-slate-900">{session.student_name}</p>
+                        <p className="mt-1 text-[12px] font-medium text-slate-700">
+                          <span className="font-black text-slate-900">Code:</span> {formatTestCode(session.test_code)}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-left text-[12px] font-bold text-slate-500 lg:min-w-[72px]">
+                        {formatClock(session.timeRemainingSeconds)}
+                      </div>
                     </div>
-                    <div className="text-right text-[11px] font-bold text-slate-500">
-                      {formatClock(session.timeRemainingSeconds)}
+                    <div className="text-[12px] font-medium text-slate-700">
+                      <span className="font-black text-slate-900">Grade:</span> {session.grade}
+                    </div>
+                    <div className="space-y-3">
+                      {[
+                        { label: "Maths", answered: session.mathematics_answered || 0, total: session.mathematics_total || 0, tone: "bg-blue-500" },
+                        { label: "EVS", answered: session.evs_answered || 0, total: session.evs_total || 0, tone: "bg-emerald-500" },
+                        { label: "Science", answered: session.science_answered || 0, total: session.science_total || 0, tone: "bg-violet-500" },
+                        { label: "English", answered: session.english_answered || 0, total: session.english_total || 0, tone: "bg-amber-500" },
+                      ]
+                        .filter((subject) => subject.total > 0)
+                        .map((subject) => (
+                          <SubjectProgress
+                            key={subject.label}
+                            label={subject.label}
+                            answered={subject.answered}
+                            total={subject.total}
+                            tone={subject.tone}
+                          />
+                        ))}
+                    </div>
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-[12px]">
+                      <span className="font-medium text-slate-600">Tab switches: <span className={cn("font-black", session.tab_switch_count > 0 ? "text-rose-600" : "text-slate-900")}>{session.tab_switch_count}</span></span>
+                      <span className="font-medium text-slate-600">Q{session.currentQuestionIndex}</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-[12px] font-medium text-slate-700">
-                    <span><span className="font-black text-slate-900">Code:</span> {formatTestCode(session.test_code)}</span>
-                    <span><span className="font-black text-slate-900">Grade:</span> {session.grade}</span>
-                  </div>
-                  <div className="space-y-3">
-                    {[
-                      { label: "Maths", answered: session.mathematics_answered || 0, total: session.mathematics_total || 0, tone: "bg-blue-500" },
-                      { label: "EVS", answered: session.evs_answered || 0, total: session.evs_total || 0, tone: "bg-emerald-500" },
-                      { label: "Science", answered: session.science_answered || 0, total: session.science_total || 0, tone: "bg-violet-500" },
-                      { label: "English", answered: session.english_answered || 0, total: session.english_total || 0, tone: "bg-amber-500" },
-                    ]
-                      .filter((subject) => subject.total > 0)
-                      .map((subject) => (
-                        <SubjectProgress
-                          key={subject.label}
-                          label={subject.label}
-                          answered={subject.answered}
-                          total={subject.total}
-                          tone={subject.tone}
-                        />
-                      ))}
-                  </div>
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-[12px]">
-                    <span className="font-medium text-slate-600">Tab switches: <span className={cn("font-black", session.tab_switch_count > 0 ? "text-rose-600" : "text-slate-900")}>{session.tab_switch_count}</span></span>
-                    <span className="font-medium text-slate-600">Q{session.currentQuestionIndex}</span>
-                  </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         ) : (
@@ -335,6 +346,82 @@ export default function SessionMonitorPage() {
           </div>
         )}
       </section>
+      {selectedSession ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/80 p-6 backdrop-blur-sm"
+          onClick={() => setSelectedSessionCode(null)}
+        >
+          <div
+            className="flex h-[92vh] w-full max-w-[1600px] flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div>
+                <p className="text-2xl font-black text-slate-900">{selectedSession.student_name}</p>
+                <p className="text-sm font-medium text-slate-500">
+                  {formatTestCode(selectedSession.test_code)} · Grade {selectedSession.grade} · Q{selectedSession.currentQuestionIndex}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedSessionCode(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </div>
+            <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="flex min-h-0 items-center justify-center bg-slate-950 p-4">
+                {streamMap[selectedSession.test_code] ? (
+                  <video
+                    autoPlay
+                    playsInline
+                    muted
+                    ref={(node) => {
+                      if (node && node.srcObject !== streamMap[selectedSession.test_code]) {
+                        node.srcObject = streamMap[selectedSession.test_code];
+                      }
+                    }}
+                    className="h-full w-full rounded-[20px] object-contain"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <Monitor className="mx-auto mb-4 h-14 w-14 animate-pulse text-slate-600" />
+                    <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Connecting screen</p>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-5 overflow-y-auto border-l border-slate-200 bg-white p-6">
+                <div className="grid gap-3 text-sm text-slate-700">
+                  <p><span className="font-black text-slate-900">Code:</span> {formatTestCode(selectedSession.test_code)}</p>
+                  <p><span className="font-black text-slate-900">Grade:</span> {selectedSession.grade}</p>
+                  <p><span className="font-black text-slate-900">Remaining:</span> {formatClock(selectedSession.timeRemainingSeconds)}</p>
+                  <p><span className="font-black text-slate-900">Current Question:</span> {selectedSession.currentQuestionIndex}</p>
+                  <p><span className="font-black text-slate-900">Tab Switches:</span> {selectedSession.tab_switch_count}</p>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { label: "Maths", answered: selectedSession.mathematics_answered || 0, total: selectedSession.mathematics_total || 0, tone: "bg-blue-500" },
+                    { label: "EVS", answered: selectedSession.evs_answered || 0, total: selectedSession.evs_total || 0, tone: "bg-emerald-500" },
+                    { label: "Science", answered: selectedSession.science_answered || 0, total: selectedSession.science_total || 0, tone: "bg-violet-500" },
+                    { label: "English", answered: selectedSession.english_answered || 0, total: selectedSession.english_total || 0, tone: "bg-amber-500" },
+                  ]
+                    .filter((subject) => subject.total > 0)
+                    .map((subject) => (
+                      <SubjectProgress
+                        key={subject.label}
+                        label={subject.label}
+                        answered={subject.answered}
+                        total={subject.total}
+                        tone={subject.tone}
+                      />
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </SchoolShell>
   );
 }

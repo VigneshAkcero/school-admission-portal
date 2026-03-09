@@ -55,6 +55,11 @@
     @apply transition-colors duration-200;
   }
 
+  html,
+  body {
+    background-color: white;
+  }
+
   body {
     background-image:
       radial-gradient(at 0% 0%, oklch(0.92 0.02 255 / 0.1) 0px, transparent 50%),

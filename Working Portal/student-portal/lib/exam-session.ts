@@ -30,6 +30,19 @@ export interface ActiveExamSession {
 export interface SubmittedResult {
   success: boolean;
   timedOut: boolean;
+  feedbackSubmitted?: boolean;
+  feedbackRating?: number | null;
+}
+
+export interface PersistedAnswerState {
+  selectedOption: "a" | "b" | "c" | "d" | null;
+  savedOption?: "a" | "b" | "c" | "d" | null;
+  status?: "NOT_VISITED" | "ANSWERED" | "ANSWERED_MARKED" | "MARKED" | "NOT_ANSWERED";
+  savedStatus?: "NOT_VISITED" | "ANSWERED" | "ANSWERED_MARKED" | "MARKED" | "NOT_ANSWERED";
+  markedForReview?: boolean;
+  savedMarkedForReview?: boolean;
+  visited: boolean;
+  needsAttention?: boolean;
 }
 
 export function saveActiveSession(session: ActiveExamSession) {
@@ -70,7 +83,7 @@ export function getSavedResult(): SubmittedResult | null {
   }
 }
 
-export function saveAnswerState(state: Record<string, { selectedOption: "a" | "b" | "c" | "d" | null; markedForReview: boolean; visited: boolean }>) {
+export function saveAnswerState(state: Record<string, PersistedAnswerState>) {
   sessionStorage.setItem(ANSWER_STATE_KEY, JSON.stringify(state));
 }
 
@@ -78,10 +91,7 @@ export function getAnswerState() {
   const raw = sessionStorage.getItem(ANSWER_STATE_KEY);
   if (!raw) return {};
   try {
-    return JSON.parse(raw) as Record<
-      string,
-      { selectedOption: "a" | "b" | "c" | "d" | null; markedForReview: boolean; visited: boolean }
-    >;
+    return JSON.parse(raw) as Record<string, PersistedAnswerState>;
   } catch {
     sessionStorage.removeItem(ANSWER_STATE_KEY);
     return {};

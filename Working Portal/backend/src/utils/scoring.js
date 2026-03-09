@@ -1,6 +1,6 @@
 async function calculateScores(client, testSessionId) {
   const answerRows = await client.query(
-    `SELECT a.question_id, a.selected_option, q.subject, q.correct_option
+    `SELECT a.question_id, a.selected_option, a.answer_status, q.subject, q.correct_option
      FROM answers a
      JOIN questions q ON q.id = a.question_id
      WHERE a.test_session_id = $1`,
@@ -13,6 +13,7 @@ async function calculateScores(client, testSessionId) {
   let scienceEvs = 0;
 
   for (const row of answerRows.rows) {
+    if (!["ANSWERED", "ANSWERED_MARKED"].includes(row.answer_status)) continue;
     const correct = (row.selected_option || "").toLowerCase() === (row.correct_option || "").toLowerCase();
     if (!correct) continue;
 

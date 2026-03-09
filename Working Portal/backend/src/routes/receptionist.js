@@ -84,20 +84,6 @@ router.post("/applicants", async (req, res) => {
 
   const { studentName, parentName, mobile, grade } = parsed.data;
 
-  // Generate Test Code: YYMMGG###
-  const now = new Date();
-  const yy = now.getFullYear().toString().slice(-2);
-  const mm = (now.getMonth() + 1).toString().padStart(2, "0");
-  const gg = Number(grade).toString().padStart(2, "0");
-
-  // Count applicants in current year to generate serial number ###
-  const countRes = await pool.query(
-    "SELECT COUNT(*) FROM applicants WHERE EXTRACT(YEAR FROM applied_at) = $1",
-    [now.getFullYear()]
-  );
-  const serial = (parseInt(countRes.rows[0].count) + 1).toString().padStart(3, "0");
-  const testCode = `${yy}${mm}${gg}${serial}`;
-
   const result = await pool.query(
     `INSERT INTO applicants (
        student_name,
@@ -110,7 +96,7 @@ router.post("/applicants", async (req, res) => {
      )
      VALUES ($1, $2, $3, $4, $5, 'pending', $6)
      RETURNING id, student_name, parent_name, mobile_number, grade, test_code, status, applied_at`,
-    [studentName, parentName, mobile, grade, testCode, req.user.sub],
+    [studentName, parentName, mobile, grade, null, req.user.sub],
   );
 
   return res.status(201).json({ applicant: result.rows[0] });

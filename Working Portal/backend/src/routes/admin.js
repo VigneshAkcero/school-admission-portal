@@ -206,9 +206,33 @@ router.post("/applicants/:id/generate-code", async (req, res) => {
          score_math = NULL,
          score_science_evs = NULL,
          created_by = EXCLUDED.created_by,
-         created_at = NOW(),
-         test_date = CURRENT_DATE`,
+       created_at = NOW(),
+       test_date = CURRENT_DATE`,
       [applicant.id, testCode, applicant.student_name, applicant.parent_name, applicant.mobile_number, applicant.grade, req.user.sub],
+    );
+
+    const updatedApplicantResult = await client.query(
+      `SELECT
+         a.id,
+         a.applicant_number,
+         a.student_name,
+         a.parent_name,
+         a.mobile_number,
+         a.grade,
+         a.status,
+         a.test_code,
+         a.applied_at,
+         a.updated_at,
+         a.test_started_at,
+         a.test_completed_at,
+         a.total_tab_switches,
+         ts.start_time,
+         ts.end_time,
+         COALESCE(ts.status, 'created') AS session_status
+       FROM applicants a
+       LEFT JOIN test_sessions ts ON ts.applicant_id = a.id
+       WHERE a.id = $1`,
+      [applicant.id],
     );
 
     await client.query("COMMIT");
@@ -226,6 +250,7 @@ router.post("/applicants/:id/generate-code", async (req, res) => {
       applicantId: applicant.id,
       testCode,
       displayCode: formatTestCodeForDisplay(testCode),
+      applicant: updatedApplicantResult.rows[0],
     });
   } catch (error) {
     await client.query("ROLLBACK");
@@ -314,22 +339,22 @@ router.get("/active-sessions", async (_req, res) => {
      LEFT JOIN (
        SELECT
          test_session_id,
-         COUNT(*) FILTER (WHERE selected_option IS NOT NULL)::int AS answered_count,
+         COUNT(*) FILTER (WHERE answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS answered_count,
          COUNT(*)::int AS visited_count,
-         COUNT(*) FILTER (WHERE is_marked_for_review = true)::int AS marked_count
+         COUNT(*) FILTER (WHERE answer_status IN ('MARKED', 'ANSWERED_MARKED'))::int AS marked_count
        FROM answers
        GROUP BY test_session_id
      ) answer_counts ON answer_counts.test_session_id = ts.id
      LEFT JOIN (
        SELECT
          ts_inner.id AS test_session_id,
-         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%eng%' AND a.selected_option IS NOT NULL)::int AS english_answered,
+         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%eng%' AND a.answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS english_answered,
          COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%eng%')::int AS english_total,
-         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%math%' AND a.selected_option IS NOT NULL)::int AS mathematics_answered,
+         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%math%' AND a.answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS mathematics_answered,
          COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%math%')::int AS mathematics_total,
-         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%evs%' AND a.selected_option IS NOT NULL)::int AS evs_answered,
+         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%evs%' AND a.answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS evs_answered,
          COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%evs%')::int AS evs_total,
-         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%sci%' AND a.selected_option IS NOT NULL)::int AS science_answered,
+         COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%sci%' AND a.answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS science_answered,
          COUNT(*) FILTER (WHERE LOWER(q.subject) LIKE '%sci%')::int AS science_total
        FROM test_sessions ts_inner
        JOIN questions q ON q.class_level = ts_inner.grade

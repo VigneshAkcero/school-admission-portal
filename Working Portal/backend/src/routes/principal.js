@@ -103,6 +103,7 @@ router.get("/results", async (req, res) => {
        a.status,
        a.test_code,
        a.applied_at,
+       a.test_completed_at,
        a.score,
        a.score_english,
        a.score_math,
@@ -127,7 +128,7 @@ router.get("/results", async (req, res) => {
        GROUP BY class_level
      ) question_totals ON question_totals.class_level = a.grade
      WHERE ${where.join(" AND ")}
-     ORDER BY COALESCE(a.decision_at, a.test_completed_at, a.updated_at) DESC`,
+     ORDER BY COALESCE(a.test_completed_at, ts.end_time, a.applied_at) DESC, a.applied_at DESC`,
     values,
   );
 

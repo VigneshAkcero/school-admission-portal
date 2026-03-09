@@ -37,6 +37,39 @@ Default dev ports:
 - Student portal: `http://localhost:3301`
 - Backend API: `http://localhost:4000`
 
+## Local HTTPS Setup
+1. Generate a development certificate once:
+```bash
+./scripts/generate-dev-cert.sh
+```
+Optional:
+```bash
+./scripts/generate-dev-cert.sh 192.168.x.x
+```
+2. Backend over HTTPS:
+```bash
+cd backend
+cp .env.example .env
+npm run dev:https
+```
+3. Admin portal over HTTPS:
+```bash
+cd admin-portal
+npm run dev:https
+```
+4. Student portal over HTTPS:
+```bash
+cd student-portal
+npm run dev:https
+```
+
+HTTPS dev ports:
+- Admin portal: `https://localhost:3300`
+- Student portal: `https://localhost:3301`
+- Backend API: `https://localhost:4000`
+
+For LAN testing, open the portals with your machine IP over `https://...` and trust the generated certificate on the other device if the browser warns about it.
+
 LAN access (same Wi-Fi/network):
 - Admin portal runs on `0.0.0.0:3300`
 - Student portal runs on `0.0.0.0:3301`

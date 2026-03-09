@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, CalendarDays, CalendarRange, CalendarClock, CalendarFold } from "lucide-react";
+import { Plus, CalendarDays, CalendarFold, BarChart3 } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { getHomePathForRole, useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import type { ApplicantRow } from "@/lib/types";
@@ -35,10 +36,29 @@ interface DashboardResponse {
   applicants: ApplicantRow[];
 }
 
+interface RegistrationsByGradeResponse {
+  period: "today" | "week" | "month" | "year";
+  grades: Array<{
+    grade: number;
+    registrations: number;
+  }>;
+}
+
+const FILTER_OPTIONS = [
+  { value: "today", label: "Today" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+  { value: "year", label: "Year" },
+] as const;
+
+const CHART_BAR_COLORS = ["#4d7fe6", "#5b8bf0", "#69a1ff", "#7ab4ff", "#4e89f5", "#3f78dd", "#6c9dff", "#8ab7ff", "#5c8ded"];
+
 export default function ReceptionistPage() {
   const router = useRouter();
   const { user, token, isReady } = useAuth();
   const [data, setData] = useState<DashboardResponse | null>(null);
+  const [registrationsByGrade, setRegistrationsByGrade] = useState<RegistrationsByGradeResponse | null>(null);
+  const [gradeFilter, setGradeFilter] = useState<(typeof FILTER_OPTIONS)[number]["value"]>("today");
   const [form, setForm] = useState({
     studentName: "",
     parentName: "",
@@ -65,10 +85,21 @@ export default function ReceptionistPage() {
     setData(response);
   }
 
+  async function loadRegistrationsByGrade(period: (typeof FILTER_OPTIONS)[number]["value"]) {
+    if (!token) return;
+    const response = await apiRequest<RegistrationsByGradeResponse>(`/api/stats/registrations-by-grade?period=${period}`, { token });
+    setRegistrationsByGrade(response);
+  }
+
   useEffect(() => {
     if (!token || user?.role !== "receptionist") return;
     load().catch(() => undefined);
   }, [token, user?.role]);
+
+  useEffect(() => {
+    if (!token || user?.role !== "receptionist") return;
+    loadRegistrationsByGrade(gradeFilter).catch(() => undefined);
+  }, [token, user?.role, gradeFilter]);
 
   async function submit() {
     if (!token) return;
@@ -85,6 +116,7 @@ export default function ReceptionistPage() {
     setSuccessName(form.studentName);
     setForm({ studentName: "", parentName: "", mobile: "", grade: "1" });
     await load();
+    await loadRegistrationsByGrade(gradeFilter);
   }
 
   if (!user || user.role !== "receptionist") return null;
@@ -175,26 +207,85 @@ export default function ReceptionistPage() {
                 className="min-h-[168px] rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
               />
               <MetricCard
-                label="Registrations This Week"
-                value={data?.summary.week_count ?? 0}
-                accent="bg-emerald-500"
-                icon={<CalendarRange className="size-5" />}
-                className="min-h-[168px] rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
-              />
-              <MetricCard
-                label="Registrations This Month"
-                value={data?.summary.month_count ?? 0}
-                accent="bg-amber-500"
-                icon={<CalendarClock className="size-5" />}
-                className="min-h-[168px] rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
-              />
-              <MetricCard
                 label="Registrations This Year"
                 value={data?.summary.year_count ?? 0}
                 accent="bg-violet-500"
                 icon={<CalendarFold className="size-5" />}
                 className="min-h-[168px] rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
               />
+            </div>
+            <div className="rounded-[30px] border border-slate-200/80 bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
+              <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 shadow-sm">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black tracking-tight text-slate-900">Registrations by Grade</h3>
+                    <p className="mt-1 text-sm font-medium text-slate-500">Track how admissions are distributed across grades.</p>
+                  </div>
+                </div>
+                <div className="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+                  {FILTER_OPTIONS.map((option) => {
+                    const active = gradeFilter === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`rounded-xl px-4 py-2 text-sm font-bold transition-all ${
+                          active
+                            ? "bg-white text-slate-900 shadow-sm"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                        onClick={() => setGradeFilter(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-6 h-[320px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={registrationsByGrade?.grades ?? []} barCategoryGap={22} margin={{ top: 12, right: 12, left: -16, bottom: 0 }}>
+                    <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" vertical={false} />
+                    <XAxis
+                      dataKey="grade"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: "#475569", fontSize: 13, fontWeight: 800 }}
+                      tickFormatter={(value) => `${value}`}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: "#64748b", fontSize: 12, fontWeight: 700 }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "rgba(77,127,230,0.08)" }}
+                      contentStyle={{
+                        borderRadius: 18,
+                        border: "1px solid #dbe4f0",
+                        boxShadow: "0 20px 45px rgba(15,23,42,0.12)",
+                        backgroundColor: "#ffffff",
+                      }}
+                      formatter={(value: number) => [value, "Registrations"]}
+                      labelFormatter={(value) => `Grade ${value}`}
+                    />
+                    <Bar dataKey="registrations" radius={[14, 14, 6, 6]} maxBarSize={42}>
+                      {(registrationsByGrade?.grades ?? []).map((entry, index) => (
+                        <Cell key={`grade-${entry.grade}`} fill={CHART_BAR_COLORS[index % CHART_BAR_COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-500">
+                {`Showing ${registrationsByGrade?.period ?? gradeFilter} registrations grouped by grade.`}
+              </div>
             </div>
           </div>
         </div>

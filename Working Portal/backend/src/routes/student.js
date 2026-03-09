@@ -8,6 +8,16 @@ const { broadcastToAdmins, broadcastToAdminMonitor } = require("../websocket/hub
 
 const TEST_DURATION_MINUTES = 45;
 
+function deriveAnswerStatus(payload) {
+  if (payload.answerStatus) return payload.answerStatus;
+  const selectedOption = payload.selectedOption ?? null;
+  const markedForReview = payload.markedForReview ?? false;
+  if (markedForReview && selectedOption !== null) return "ANSWERED_MARKED";
+  if (markedForReview) return "MARKED";
+  if (selectedOption !== null) return "ANSWERED";
+  return "NOT_VISITED";
+}
+
 const router = express.Router();
 const submitLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -158,28 +168,42 @@ router.post("/save-answer", async (req, res) => {
       return res.status(409).json({ error: "Test is not active" });
     }
 
-    await client.query(
-      `INSERT INTO answers (test_session_id, question_id, selected_option, is_marked_for_review, answered_at)
-       VALUES ($1, $2, $3, $4, NOW())
-       ON CONFLICT (test_session_id, question_id)
-       DO UPDATE SET selected_option = EXCLUDED.selected_option,
-                     is_marked_for_review = EXCLUDED.is_marked_for_review,
-                     answered_at = NOW()`,
-      [
-        session.id,
-        payload.questionId,
-        payload.selectedOption ?? null,
-        payload.markedForReview ?? false,
-      ],
-    );
+    const answerStatus = deriveAnswerStatus(payload);
+    const selectedOption = payload.selectedOption ?? null;
+    const markedForReview = answerStatus === "MARKED" || answerStatus === "ANSWERED_MARKED";
+
+    if (answerStatus === "NOT_VISITED" && selectedOption === null) {
+      await client.query(
+        `DELETE FROM answers
+         WHERE test_session_id = $1 AND question_id = $2`,
+        [session.id, payload.questionId],
+      );
+    } else {
+      await client.query(
+        `INSERT INTO answers (test_session_id, question_id, selected_option, is_marked_for_review, answer_status, answered_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT (test_session_id, question_id)
+         DO UPDATE SET selected_option = EXCLUDED.selected_option,
+                       is_marked_for_review = EXCLUDED.is_marked_for_review,
+                       answer_status = EXCLUDED.answer_status,
+                       answered_at = NOW()`,
+        [
+          session.id,
+          payload.questionId,
+          selectedOption,
+          markedForReview,
+          answerStatus,
+        ],
+      );
+    }
 
     await client.query("COMMIT");
 
     const [progressCountResult, tabSwitchResult, totalQuestionsResult, subjectProgressResult, subjectTotalResult] = await Promise.all([
       pool.query(
         `SELECT
-           COUNT(*) FILTER (WHERE selected_option IS NOT NULL)::int AS answered_count,
-           COUNT(*) FILTER (WHERE is_marked_for_review = true)::int AS marked_count
+           COUNT(*) FILTER (WHERE answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS answered_count,
+           COUNT(*) FILTER (WHERE answer_status IN ('MARKED', 'ANSWERED_MARKED'))::int AS marked_count
          FROM answers
          WHERE test_session_id = $1`,
         [session.id],
@@ -197,7 +221,7 @@ router.post("/save-answer", async (req, res) => {
         [session.grade],
       ),
       pool.query(
-        `SELECT COUNT(*) FILTER (WHERE a.selected_option IS NOT NULL)::int AS answered_count_in_subject
+        `SELECT COUNT(*) FILTER (WHERE a.answer_status IN ('ANSWERED', 'ANSWERED_MARKED'))::int AS answered_count_in_subject
          FROM answers a
          JOIN questions q ON q.id = a.question_id
          WHERE a.test_session_id = $1

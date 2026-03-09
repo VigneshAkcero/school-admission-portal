@@ -1,4 +1,6 @@
+const fs = require("fs");
 const http = require("http");
+const https = require("https");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -13,10 +15,12 @@ const { authenticateAdmin, authorizeRoles } = require("./middleware/auth");
 
 const authRoutes = require("./routes/auth");
 const receptionistRoutes = require("./routes/receptionist");
+const statsRoutes = require("./routes/stats");
 const adminRoutes = require("./routes/admin");
 const principalRoutes = require("./routes/principal");
 const studentRoutes = require("./routes/student");
 const wsEventRoutes = require("./routes/wsEvents");
+const publicApplicantRoutes = require("./routes/publicApplicants");
 
 const app = express();
 app.disable("x-powered-by");
@@ -24,12 +28,24 @@ app.use(helmet());
 app.use(express.json({ limit: "1mb" }));
 
 const adminCors = cors({
-  origin: config.adminOrigins,
+  origin(origin, callback) {
+    if (config.isAllowedAdminOrigin(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for admin origin: ${origin || "unknown"}`));
+  },
   credentials: true,
 });
 
 const studentCors = cors({
-  origin: config.studentOrigins,
+  origin(origin, callback) {
+    if (config.isAllowedStudentOrigin(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for student origin: ${origin || "unknown"}`));
+  },
   credentials: true,
 });
 
@@ -42,10 +58,12 @@ app.use("/api/auth/verify-code", studentCors);
 app.use("/api/auth", authRoutes);
 
 app.use("/api/receptionist", adminCors, authenticateAdmin, authorizeRoles("receptionist"), receptionistRoutes);
+app.use("/api/stats", adminCors, authenticateAdmin, authorizeRoles("receptionist", "admin"), statsRoutes);
 app.use("/api/admin", adminCors, authenticateAdmin, authorizeRoles("admin"), adminRoutes);
 app.use("/api/principal", adminCors, authenticateAdmin, authorizeRoles("principal"), principalRoutes);
 app.use("/api/student", studentCors, studentRoutes);
 app.use("/api/ws", studentCors, wsEventRoutes);
+app.use("/api/applicants", studentCors, publicApplicantRoutes);
 
 app.use((error, _req, res, _next) => {
   console.error(error);
@@ -161,11 +179,20 @@ async function start() {
   await migrate();
   const seededCount = await seedQuestions();
   startAutoSubmitJob();
-  const server = http.createServer(app);
+  const server = config.https
+    ? https.createServer(
+      {
+        key: fs.readFileSync(config.httpsKeyPath),
+        cert: fs.readFileSync(config.httpsCertPath),
+        ...(config.httpsCaPath ? { ca: fs.readFileSync(config.httpsCaPath) } : {}),
+      },
+      app,
+    )
+    : http.createServer(app);
   attachWebSocketServer(server);
 
   server.listen(config.port, () => {
-    console.log(`API running on port ${config.port}`);
+    console.log(`API running on ${config.https ? "https" : "http"}://0.0.0.0:${config.port}`);
     console.log(`Questions upserted: ${seededCount}`);
   });
 }

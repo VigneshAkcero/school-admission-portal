@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronDown, ChevronUp, ShieldAlert, Timer, GraduationCap, CheckCircle2, Clock } from "lucide-react";
+import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer } from "recharts";
 import { getHomePathForRole, useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/api";
 import type { ApplicantRow } from "@/lib/types";
@@ -10,6 +11,7 @@ import { durationLabel, formatDateOnly, formatTestCode } from "@/lib/display";
 import { PrincipalShell } from "@/components/principal-shell";
 import { StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -30,7 +32,7 @@ export default function ResultsPage() {
   const [results, setResults] = useState<ApplicantRow[]>([]);
   const [grade, setGrade] = useState("all");
   const [search, setSearch] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedRow, setSelectedRow] = useState<ApplicantRow | null>(null);
   const [decisionState, setDecisionState] = useState<{ id: string; decision: "approved" | "rejected" } | null>(null);
 
   useEffect(() => {
@@ -60,12 +62,22 @@ export default function ResultsPage() {
 
   async function takeDecision(id: string, decision: "approved" | "rejected") {
     if (!token) return;
-    await apiRequest(`/api/principal/results/${id}/decision`, {
+    const response = await apiRequest<{ success: boolean; status: ApplicantRow["status"] }>(`/api/principal/results/${id}/decision`, {
       method: "POST",
       token,
       body: { decision },
     });
-    await loadResults();
+    setResults((current) =>
+      current.map((row) =>
+        row.id === id
+          ? {
+              ...row,
+              status: response.status,
+            }
+          : row,
+      ),
+    );
+    setSelectedRow((current) => (current && current.id === id ? { ...current, status: response.status } : current));
   }
 
   function exportApprovedCsv() {
@@ -79,7 +91,7 @@ export default function ResultsPage() {
           row.parent_name,
           row.mobile_number,
           row.grade,
-          formatDateOnly(row.applied_at),
+          formatDateOnly(getSubmissionTimestamp(row)),
           row.test_code || "",
           `${row.score_percentage ?? 0}%`,
           row.status,
@@ -97,14 +109,14 @@ export default function ResultsPage() {
     URL.revokeObjectURL(url);
   }
 
-  const scoreRows = useMemo(() => results, [results]);
+  const scoreRows = useMemo(() => [...results].sort(compareBySubmissionTimeDesc), [results]);
 
   if (!user || user.role !== "principal") return null;
 
   return (
     <PrincipalShell title="Applicants">
-      <section className="space-y-7">
-        <div className="premium-card">
+      <section className="min-w-0 space-y-7">
+        <div className="premium-card min-w-0">
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <h2 className="text-xl font-black tracking-tight text-slate-900">Application Performance</h2>
             <div className="flex flex-wrap items-center gap-4">
@@ -124,7 +136,7 @@ export default function ResultsPage() {
                 <SelectContent className="border-slate-200 bg-white shadow-2xl">
                   <SelectItem value="all">All Grades</SelectItem>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((g) => (
-                    <SelectItem key={g} value={g.toString()}>Grade {g}</SelectItem>
+                    <SelectItem key={g} value={g.toString()}>{g}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -137,131 +149,99 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          <div className="relative overflow-x-auto rounded-[32px] border border-slate-100 bg-white">
-            <table className="w-full border-collapse text-left">
+          <div className="relative w-full overflow-x-auto rounded-[32px] border border-slate-100 bg-white">
+            <table className="min-w-[1360px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-slate-50 bg-slate-50/30">
-                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Student Name</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Parent Name</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Parent Mobile</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Grade</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Date</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Code</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Performance</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Status</th>
-                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 text-right">Review Action</th>
+                  <th className="px-5 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Student Name</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Parent Name</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Parent Mobile</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Grade</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Date</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Code</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Performance</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600">Status</th>
+                  <th className="px-5 py-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 text-right">Review Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100/50">
                 {scoreRows.map((row) => {
-                  const isExpanded = expandedId === row.id;
+                  const isSelected = selectedRow?.id === row.id;
                   const principalStatus = row.status === "test_completed" ? "pending" : row.status;
                   return (
-                    <Fragment key={row.id}>
-                      <tr
-                        className={cn("group cursor-pointer transition-all hover:bg-slate-50/80", isExpanded ? "bg-indigo-50/30" : "")}
-                        onClick={() => setExpandedId((prev) => (prev === row.id ? null : row.id))}
-                      >
-                        <td className="px-8 py-5">
-                          <div className="text-base font-black leading-tight text-slate-900">{row.student_name}</div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="text-sm font-normal text-slate-700">{row.parent_name}</div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="text-sm font-medium text-slate-700">{row.mobile_number}</div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <span className="inline-flex w-fit rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-600">GRADE {row.grade}</span>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="text-sm font-medium text-slate-700">{formatDateOnly(row.applied_at)}</div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <code className="rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs font-black text-blue-600 shadow-sm md:text-sm">
-                            {formatTestCode(row.test_code)}
-                          </code>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-sm font-black text-white shadow-lg shadow-blue-500/30">
-                              {Math.round(row.score_percentage ?? 0)}%
-                            </div>
-                            {isExpanded ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />}
+                    <tr
+                      key={row.id}
+                      className={cn("group cursor-pointer transition-all hover:bg-slate-50/80", isSelected ? "bg-indigo-50/30" : "")}
+                      onClick={() => setSelectedRow(row)}
+                    >
+                      <td className="px-5 py-5">
+                        <div className="text-base font-black leading-tight text-slate-900">{row.student_name}</div>
+                      </td>
+                      <td className="px-4 py-5">
+                        <div className="text-sm font-normal text-slate-700">{row.parent_name}</div>
+                      </td>
+                      <td className="px-4 py-5">
+                        <div className="text-sm font-medium text-slate-700">{row.mobile_number}</div>
+                      </td>
+                      <td className="px-4 py-5">
+                        <span className="inline-flex min-w-9 justify-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-600">{row.grade}</span>
+                      </td>
+                      <td className="px-4 py-5">
+                        <div className="text-sm font-medium text-slate-700">{formatDateOnly(getSubmissionTimestamp(row))}</div>
+                      </td>
+                      <td className="px-4 py-5">
+                        <code className="rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs font-black text-blue-600 shadow-sm md:text-sm">
+                          {formatTestCode(row.test_code)}
+                        </code>
+                      </td>
+                      <td className="px-4 py-5">
+                        <button
+                          type="button"
+                          className="flex items-center gap-3"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRow(row);
+                          }}
+                        >
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-sm font-black text-white shadow-lg shadow-blue-500/30">
+                            {Math.round(row.score_percentage ?? 0)}%
                           </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          {principalStatus === "approved" ? (
-                            <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-                              Approved
-                            </span>
-                          ) : (
-                            <StatusPill status={principalStatus as any} />
-                          )}
-                        </td>
-                        <td className="px-8 py-5 text-right" onClick={(e) => e.stopPropagation()}>
-                          {principalStatus === "pending" ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                className="h-8 rounded-xl bg-emerald-50 px-4 text-xs font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-100"
-                                onClick={() => setDecisionState({ id: row.id, decision: "approved" })}
-                              >
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 rounded-xl border border-rose-200 px-4 text-xs font-bold text-rose-600 transition-all hover:bg-rose-50"
-                                onClick={() => setDecisionState({ id: row.id, decision: "rejected" })}
-                              >
-                                Reject
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-xs font-bold text-slate-400">Resolved</span>
-                          )}
-                        </td>
-                      </tr>
-                      {isExpanded ? (
-                        <tr className="bg-white">
-                          <td colSpan={9} className="px-8 pb-8 pt-2">
-                            <div className="grid gap-6 md:grid-cols-2">
-                              <div className="rounded-[28px] border border-slate-100 bg-slate-50/60 p-6">
-                                <h3 className="mb-5 flex items-center gap-2 border-b border-slate-200 pb-4 text-xl font-black text-slate-900">
-                                  <GraduationCap className="h-5 w-5 text-indigo-500" />
-                                  Academic Scorecard
-                                </h3>
-                                <div className="space-y-3">
-                                  <DetailRowItem label="Overall Percentage" value={`${row.score_percentage ?? 0}%`} accent="indigo" />
-                                  <DetailRowItem label="Correct Answers" value={`${row.score ?? 0} / ${row.total_questions ?? 0}`} accent="blue" />
-                                  <DetailRowItem label="English Correct" value={row.score_english ?? 0} accent="indigo" />
-                                  <DetailRowItem label="Mathematics Correct" value={row.score_math ?? 0} accent="blue" />
-                                  <DetailRowItem label={row.grade >= 7 ? "Science Correct" : "EVS Correct"} value={row.score_science_evs ?? 0} accent="cyan" />
-                                </div>
-                              </div>
-                              <div className="rounded-[28px] border border-slate-100 bg-slate-50/60 p-6">
-                                <h3 className="mb-5 flex items-center gap-2 border-b border-slate-200 pb-4 text-xl font-black text-slate-900">
-                                  <ShieldAlert className="h-5 w-5 text-blue-600" />
-                                  Proctoring Compliance
-                                </h3>
-                                <div className="space-y-3">
-                                  <DetailRowItem label="Exam Initiation" value={row.start_time_ist || "—"} icon={<Clock className="h-4 w-4" />} />
-                                  <DetailRowItem label="Exam Conclusion" value={row.end_time_ist || "—"} icon={<CheckCircle2 className="h-4 w-4" />} />
-                                  <DetailRowItem label="Active Duration" value={durationLabel(row.start_time, row.end_time)} icon={<Timer className="h-4 w-4" />} />
-                                  <DetailRowItem
-                                    label="Tab Switch Events"
-                                    value={row.total_tab_switches || 0}
-                                    warning={(row.total_tab_switches || 0) > 3}
-                                    icon={<ShieldAlert className="h-4 w-4" />}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
+                          {isSelected ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />}
+                        </button>
+                      </td>
+                      <td className="px-4 py-5">
+                        {principalStatus === "approved" ? (
+                          <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                            Approved
+                          </span>
+                        ) : (
+                          <StatusPill status={principalStatus as any} />
+                        )}
+                      </td>
+                      <td className="px-5 py-5 text-right" onClick={(e) => e.stopPropagation()}>
+                        {principalStatus === "pending" ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              className="h-8 rounded-xl bg-emerald-50 px-4 text-xs font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-100"
+                              onClick={() => setDecisionState({ id: row.id, decision: "approved" })}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 rounded-xl border border-rose-200 px-4 text-xs font-bold text-rose-600 transition-all hover:bg-rose-50"
+                              onClick={() => setDecisionState({ id: row.id, decision: "rejected" })}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-bold text-slate-400">Resolved</span>
+                        )}
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -277,6 +257,49 @@ export default function ResultsPage() {
             )}
           </div>
         </div>
+
+        <Dialog open={Boolean(selectedRow)} onOpenChange={(open) => !open && setSelectedRow(null)}>
+          {selectedRow ? (
+            <DialogContent
+              showCloseButton={false}
+              overlayClassName="bg-black/60"
+              className="!w-[96vw] !max-w-[1600px] gap-0 rounded-[32px] border border-slate-200 bg-white p-0 shadow-2xl"
+            >
+              <DialogHeader className="border-b border-slate-200 px-8 py-6">
+                <DialogTitle className="text-2xl font-black text-slate-900">{selectedRow.student_name}</DialogTitle>
+              </DialogHeader>
+              <DialogClose className="absolute right-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-lg font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+                ✕
+              </DialogClose>
+              <div className="grid gap-6 p-6 md:grid-cols-[1.35fr_1fr]">
+                <div className="rounded-[28px] border border-slate-100 bg-slate-50/60 p-6">
+                  <h3 className="mb-5 flex items-center gap-2 border-b border-slate-200 pb-4 text-xl font-black text-slate-900">
+                    <GraduationCap className="h-5 w-5 text-indigo-500" />
+                    Academic Scorecard
+                  </h3>
+                  <AcademicScorecard row={selectedRow} />
+                </div>
+                <div className="rounded-[28px] border border-slate-100 bg-slate-50/60 p-6">
+                  <h3 className="mb-5 flex items-center gap-2 border-b border-slate-200 pb-4 text-xl font-black text-slate-900">
+                    <ShieldAlert className="h-5 w-5 text-blue-600" />
+                    Proctoring Compliance
+                  </h3>
+                  <div className="space-y-3">
+                    <DetailRowItem label="Exam Initiation" value={selectedRow.start_time_ist || "—"} icon={<Clock className="h-4 w-4" />} />
+                    <DetailRowItem label="Exam Conclusion" value={selectedRow.end_time_ist || "—"} icon={<CheckCircle2 className="h-4 w-4" />} />
+                    <DetailRowItem label="Active Duration" value={durationLabel(selectedRow.start_time, selectedRow.end_time)} icon={<Timer className="h-4 w-4" />} />
+                    <DetailRowItem
+                      label="Tab Switch Events"
+                      value={selectedRow.total_tab_switches || 0}
+                      warning={(selectedRow.total_tab_switches || 0) > 3}
+                      icon={<ShieldAlert className="h-4 w-4" />}
+                    />
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          ) : null}
+        </Dialog>
 
         <AlertDialog open={Boolean(decisionState)} onOpenChange={(open) => !open && setDecisionState(null)}>
           <AlertDialogContent className="rounded-[24px] border-slate-200 bg-white shadow-2xl">
@@ -312,6 +335,76 @@ export default function ResultsPage() {
     </PrincipalShell>
   );
 }
+
+function compareBySubmissionTimeDesc(a: ApplicantRow, b: ApplicantRow) {
+  return getSubmissionDateValue(b) - getSubmissionDateValue(a);
+}
+
+function getSubmissionDateValue(row: ApplicantRow) {
+  const timestamp = getSubmissionTimestamp(row);
+  return timestamp ? new Date(timestamp).getTime() : 0;
+}
+
+function getSubmissionTimestamp(row: ApplicantRow) {
+  return row.test_completed_at ?? row.applied_at;
+}
+
+function AcademicScorecard({ row }: { row: ApplicantRow }) {
+  const overallPercentage = Math.max(0, Math.min(row.score_percentage ?? 0, 100));
+  const correctAnswers = row.score ?? 0;
+  const totalQuestions = row.total_questions ?? 0;
+  const correctAnswersPercentage = totalQuestions > 0 ? Math.min((correctAnswers / totalQuestions) * 100, 100) : 0;
+  const englishCorrect = row.score_english ?? 0;
+  const mathCorrect = row.score_math ?? 0;
+  const scienceCorrect = row.score_science_evs ?? 0;
+  const subjectScaleBase = Math.max(englishCorrect + mathCorrect + scienceCorrect, 1);
+  const chartData = [
+    { label: "Overall %", value: overallPercentage },
+    { label: "Correct", value: correctAnswersPercentage },
+    { label: "English", value: Math.min((englishCorrect / subjectScaleBase) * 100, 100) },
+    { label: "Math", value: Math.min((mathCorrect / subjectScaleBase) * 100, 100) },
+    { label: "Science", value: Math.min((scienceCorrect / subjectScaleBase) * 100, 100) },
+  ];
+  const metricLegend = [
+    { label: "Overall %", value: `${formatPercentage(overallPercentage)}%` },
+    { label: "Correct Answers", value: `${formatPercentage(correctAnswersPercentage)}%` },
+    { label: "English Correct", value: `${formatPercentage(Math.min((englishCorrect / subjectScaleBase) * 100, 100))}%` },
+    { label: "Mathematics Correct", value: `${formatPercentage(Math.min((mathCorrect / subjectScaleBase) * 100, 100))}%` },
+    { label: "Science Correct", value: `${formatPercentage(Math.min((scienceCorrect / subjectScaleBase) * 100, 100))}%` },
+  ];
+
+  return (
+    <div className="flex h-full min-h-[320px] flex-col gap-4">
+      <div className="h-[260px] w-full rounded-[24px] border border-blue-100 bg-white/80 px-5 py-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart data={chartData} outerRadius="68%">
+            <PolarGrid stroke="#cbd5e1" />
+            <PolarAngleAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 13, fontWeight: 700 }} />
+            <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+            <Radar dataKey="value" stroke="#2563eb" fill="#2563eb" fillOpacity={0.22} strokeWidth={3} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {metricLegend.map((item) => (
+          <div key={item.label} className="rounded-xl border border-slate-200 bg-white/70 px-3 py-2 text-sm font-bold text-slate-600">
+            <span className="text-slate-500">{item.label}:</span> {item.value}
+          </div>
+        ))}
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 text-sm font-bold text-slate-600">
+        <span>Correct Answers: {correctAnswers} / {totalQuestions}</span>
+        <span className="mx-3 text-slate-300">|</span>
+        <span>Overall: {formatPercentage(overallPercentage)}%</span>
+      </div>
+    </div>
+  );
+}
+
+function formatPercentage(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
 
 function DetailRowItem({
   label,

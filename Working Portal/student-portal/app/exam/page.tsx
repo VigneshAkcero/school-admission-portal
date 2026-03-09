@@ -30,7 +30,15 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type Option = "a" | "b" | "c" | "d";
-type QuestionState = { selectedOption: Option | null; visited: boolean; markedForReview: boolean };
+type QuestionStatus = "NOT_VISITED" | "ANSWERED" | "ANSWERED_MARKED" | "MARKED" | "NOT_ANSWERED";
+type QuestionState = {
+  selectedOption: Option | null;
+  savedOption: Option | null;
+  visited: boolean;
+  status: QuestionStatus;
+  savedStatus: QuestionStatus;
+  needsAttention: boolean;
+};
 type ExamPhase = "loading" | "ready_to_share" | "starting" | "instructions" | "exam" | "finished";
 
 function timerClass(seconds: number) {
@@ -41,6 +49,54 @@ function timerClass(seconds: number) {
 
 function fmt(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function createQuestionState(partial?: Partial<QuestionState>): QuestionState {
+  return {
+    selectedOption: null,
+    savedOption: null,
+    visited: false,
+    status: "NOT_VISITED",
+    savedStatus: "NOT_VISITED",
+    needsAttention: false,
+    ...partial,
+  };
+}
+
+function deriveSavedStatus(saved?: {
+  savedStatus?: QuestionStatus;
+  status?: QuestionStatus;
+  savedOption?: Option | null;
+  selectedOption?: Option | null;
+  savedMarkedForReview?: boolean;
+  markedForReview?: boolean;
+} | null): QuestionStatus {
+  if (!saved) return "NOT_VISITED";
+  if (saved.savedStatus) return saved.savedStatus;
+  if (saved.status) return saved.status;
+  const savedOption = saved.savedOption ?? saved.selectedOption ?? null;
+  const savedMarked = saved.savedMarkedForReview ?? saved.markedForReview ?? false;
+  if (savedMarked && savedOption !== null) return "ANSWERED_MARKED";
+  if (savedMarked) return "MARKED";
+  if (savedOption !== null) return "ANSWERED";
+  return "NOT_VISITED";
+}
+
+function getScreenShareRequirementError() {
+  if (typeof window === "undefined") return "";
+
+  const { hostname, protocol } = window.location;
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+
+  if (!window.isSecureContext && !isLocalhost) {
+    return `This device opened the portal over ${protocol === "https:" ? "HTTPS" : "HTTP"}. Screen sharing requires HTTPS or localhost. Open the student portal over HTTPS on this device and try again.`;
+  }
+
+  if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== "function") {
+    return "Screen sharing is not available on this browser/device. Please use Chrome or Edge on a desktop or laptop.";
+  }
+
+  return "";
 }
 
 export default function ExamPage() {
@@ -63,6 +119,12 @@ export default function ExamPage() {
   const [screenShareActive, setScreenShareActive] = useState(false);
   const [screenShareError, setScreenShareError] = useState("");
   const [instructionsAccepted, setInstructionsAccepted] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState<number | null>(null);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackError, setFeedbackError] = useState("");
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [redirectSeconds, setRedirectSeconds] = useState(10);
+  const [questionActionError, setQuestionActionError] = useState("");
 
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -80,6 +142,8 @@ export default function ExamPage() {
       if (saved) {
         if (ignore) return;
         setResult(saved);
+        setFeedbackRating(saved.feedbackRating ?? null);
+        setFeedbackSubmitted(Boolean(saved.feedbackSubmitted));
         setAllowClose(true);
         setExamFinished(true);
         setPhase("finished");
@@ -93,7 +157,19 @@ export default function ExamPage() {
       setSession(active);
       const stored = getAnswerState();
       setStates(
-        active.questions.map((q) => stored[q.id] || { selectedOption: null, visited: false, markedForReview: false }),
+        active.questions.map((q) => {
+          const saved = stored[q.id];
+          if (!saved) return createQuestionState();
+          const savedStatus = deriveSavedStatus(saved);
+          return createQuestionState({
+            selectedOption: saved.selectedOption ?? null,
+            savedOption: saved.savedOption ?? saved.selectedOption ?? null,
+            status: saved.status ?? savedStatus,
+            savedStatus,
+            visited: saved.visited ?? false,
+            needsAttention: saved.needsAttention ?? false,
+          });
+        }),
       );
       if (active.startedAt && active.questions.length > 0) {
         const elapsed = Math.floor((Date.now() - new Date(active.startedAt).getTime()) / 1000);
@@ -109,6 +185,13 @@ export default function ExamPage() {
       ignore = true;
     };
   }, [router]);
+
+  useEffect(() => {
+    if (phase !== "ready_to_share") return;
+
+    const error = getScreenShareRequirementError();
+    setScreenShareError(error);
+  }, [phase]);
 
   useEffect(() => {
     if (!session || phase === "finished") return;
@@ -201,6 +284,14 @@ export default function ExamPage() {
 
   const handleShareAndStart = async () => {
     try {
+      const requirementError = getScreenShareRequirementError();
+      if (requirementError) {
+        setPhase("ready_to_share");
+        setScreenShareActive(false);
+        setScreenShareError(requirementError);
+        return;
+      }
+
       tabSwitchEnabledRef.current = false;
       const stream = await (navigator.mediaDevices as any).getDisplayMedia({
         video: {
@@ -220,13 +311,19 @@ export default function ExamPage() {
       };
       setPhase("instructions");
     } catch (error) {
-      const err = error as DOMException;
+      const err = error as DOMException & { message?: string };
       setPhase("ready_to_share");
       setScreenShareActive(false);
       if (err?.name === "NotAllowedError") {
         setScreenShareError('Screen sharing was denied. Please click "Share Screen & Start Test" again and select a screen to share.');
+      } else if (err?.name === "AbortError") {
+        setScreenShareError("Screen sharing was cancelled before it started. Please click the button again and complete the share prompt.");
       } else if (err?.name === "NotSupportedError") {
         setScreenShareError("Screen sharing is not supported in this browser. Please use Chrome or Edge.");
+      } else if (err?.name === "InvalidStateError") {
+        setScreenShareError("Screen sharing must be started from a secure page. Use HTTPS or localhost and try again.");
+      } else if (err?.name === "TypeError" || /secure|https|displaymedia/i.test(err?.message || "")) {
+        setScreenShareError("Screen sharing is blocked on this page. Open the student portal over HTTPS or use localhost on the same device.");
       } else {
         setScreenShareError("Screen sharing failed. Please try again.");
       }
@@ -274,7 +371,7 @@ export default function ExamPage() {
         questions: started.questions,
         startedAt: new Date().toISOString(),
       });
-      setStates(started.questions.map(() => ({ selectedOption: null, visited: false, markedForReview: false })));
+      setStates(started.questions.map(() => createQuestionState()));
       setCurrentIndex(0);
       setTimeLeft(started.durationMinutes * 60);
 
@@ -392,16 +489,23 @@ export default function ExamPage() {
   }, [result]);
 
   useEffect(() => {
-    if (phase !== "finished") return;
-    const timer = window.setTimeout(() => {
-      router.replace("/");
-    }, 10000);
-    return () => window.clearTimeout(timer);
-  }, [phase, router]);
+    if (phase !== "finished" || !feedbackSubmitted) return;
+    setRedirectSeconds(10);
+    const timer = window.setInterval(() => {
+      setRedirectSeconds((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [phase, feedbackSubmitted]);
+
+  useEffect(() => {
+    if (phase !== "finished" || !feedbackSubmitted || redirectSeconds !== 0) return;
+    router.replace("/");
+  }, [phase, feedbackSubmitted, redirectSeconds, router]);
 
   const question = session?.questions[currentIndex];
-  const answeredCount = states.filter((s) => s.selectedOption !== null).length;
-  const unattemptedCount = states.length - answeredCount;
+  const answeredCount = states.filter((s) => s.savedStatus === "ANSWERED" || s.savedStatus === "ANSWERED_MARKED").length;
+  const unattemptedCount = states.filter((s) => s.needsAttention || s.savedStatus === "NOT_ANSWERED").length;
+  const markedForReviewCount = states.filter((s) => s.savedStatus === "MARKED" || s.savedStatus === "ANSWERED_MARKED").length;
 
   const subjectList = useMemo(() => {
     if (!session) return [] as string[];
@@ -418,13 +522,48 @@ export default function ExamPage() {
     return "science";
   }
 
-  async function saveCurrent(markedForReview?: boolean, selectedOverride?: Option | null) {
+  function markCurrentUnsaved(index: number) {
+    setStates((prev) => {
+      const current = prev[index];
+      if (!current) return prev;
+
+      const hasSavedState = current.savedStatus !== "NOT_VISITED";
+      const hasDraftChanges =
+        current.selectedOption !== current.savedOption || current.status !== current.savedStatus;
+
+      if (!current.visited || (!hasDraftChanges && hasSavedState)) {
+        return prev;
+      }
+
+      const next = [...prev];
+      next[index] = {
+        ...current,
+        status: "NOT_ANSWERED",
+        needsAttention: true,
+      };
+      return next;
+    });
+  }
+
+  function goToQuestion(nextIdx: number) {
+    if (nextIdx === currentIndex) return;
+    setQuestionActionError("");
+    markCurrentUnsaved(currentIndex);
+    setCurrentIndex(nextIdx);
+  }
+
+  async function saveCurrent(status: QuestionStatus, selectedOverride?: Option | null) {
     if (!session || !question) return;
+    setQuestionActionError("");
+    const selectedOption = selectedOverride !== undefined ? selectedOverride : states[currentIndex].selectedOption;
     const nextState = {
       ...states[currentIndex],
-      selectedOption: selectedOverride !== undefined ? selectedOverride : states[currentIndex].selectedOption,
-      markedForReview: markedForReview !== undefined ? markedForReview : states[currentIndex].markedForReview,
+      selectedOption,
+      savedOption: selectedOption,
+      status,
+      savedStatus: status,
       visited: true,
+      needsAttention: false,
     };
     const nextStates = [...states];
     nextStates[currentIndex] = nextState;
@@ -436,7 +575,8 @@ export default function ExamPage() {
         testCode: session.testCode,
         questionId: question.id,
         selectedOption: nextState.selectedOption,
-        markedForReview: nextState.markedForReview,
+        answerStatus: status,
+        markedForReview: status === "MARKED" || status === "ANSWERED_MARKED",
         currentQuestionNumber: currentIndex + 1,
         currentSubject: question.subject,
         timeRemainingSeconds: timeLeft,
@@ -445,31 +585,71 @@ export default function ExamPage() {
   }
 
   async function saveAndMove(nextIdx: number) {
-    await saveCurrent();
+    if (!states[currentIndex]?.selectedOption) {
+      setQuestionActionError("Select an option before using Save & Next.");
+      return;
+    }
+    await saveCurrent("ANSWERED");
     setCurrentIndex(nextIdx);
   }
 
+  async function saveAndMarkForReview() {
+    if (!states[currentIndex]?.selectedOption) {
+      setQuestionActionError("Select an option before using Save & Mark for Review.");
+      return;
+    }
+    await saveCurrent("ANSWERED_MARKED");
+    setCurrentIndex(Math.min((session?.questions.length || 1) - 1, currentIndex + 1));
+  }
+
   async function markForReviewAndNext() {
-    await saveCurrent(true);
+    await saveCurrent("MARKED");
     setCurrentIndex(Math.min((session?.questions.length || 1) - 1, currentIndex + 1));
   }
 
   async function clearResponse() {
-    await saveCurrent(false, null);
+    setQuestionActionError("");
+    setStates((prev) => {
+      const next = [...prev];
+      next[currentIndex] = createQuestionState();
+      return next;
+    });
+    if (!session || !question) return;
+    await studentApi("/api/student/save-answer", {
+      method: "POST",
+      body: {
+        testCode: session.testCode,
+        questionId: question.id,
+        selectedOption: null,
+        answerStatus: "NOT_VISITED",
+        markedForReview: false,
+        currentQuestionNumber: currentIndex + 1,
+        currentSubject: question.subject,
+        timeRemainingSeconds: timeLeft,
+      },
+    });
   }
 
   async function submitTest(isTimeout = false) {
     if (!session || submittingRef.current) return;
     submittingRef.current = true;
     tabSwitchEnabledRef.current = false;
-    await saveCurrent().catch(() => undefined);
     try {
       const submitted = await studentApi<SubmittedResult>("/api/student/submit-test", {
         method: "POST",
         body: { testCode: session.testCode },
       });
-      const finalResult: SubmittedResult = { success: true, timedOut: submitted.timedOut || isTimeout };
+      const finalResult: SubmittedResult = {
+        success: true,
+        timedOut: submitted.timedOut || isTimeout,
+        feedbackSubmitted: false,
+        feedbackRating: null,
+      };
       saveResult(finalResult);
+      setFeedbackSubmitted(false);
+      setFeedbackRating(null);
+      setFeedbackError("");
+      setRedirectSeconds(10);
       setExamFinished(true);
       setPhase("finished");
       clearActiveSession();
@@ -480,6 +660,33 @@ export default function ExamPage() {
       setResult(finalResult);
     } finally {
       submittingRef.current = false;
+    }
+  }
+
+  async function submitFeedback() {
+    if (!session || !feedbackRating || submittingFeedback) return;
+    setSubmittingFeedback(true);
+    setFeedbackError("");
+    try {
+      await studentApi("/api/applicants/feedback", {
+        method: "POST",
+        body: {
+          testCode: session.testCode,
+          rating: feedbackRating,
+        },
+      });
+      const nextResult: SubmittedResult = {
+        ...(result || { success: true, timedOut: false }),
+        feedbackSubmitted: true,
+        feedbackRating,
+      };
+      setFeedbackSubmitted(true);
+      setResult(nextResult);
+      saveResult(nextResult);
+    } catch (error) {
+      setFeedbackError(error instanceof Error ? error.message : "Could not save feedback");
+    } finally {
+      setSubmittingFeedback(false);
     }
   }
 
@@ -613,19 +820,19 @@ export default function ExamPage() {
               <InstructionLegend label="You have not visited the question yet." color="bg-white border-slate-300" />
               <InstructionLegend label="You have not answered the question." color="bg-[#e4572e] border-[#e4572e]" />
               <InstructionLegend label="You have answered the question." color="bg-[#43a047] border-[#43a047]" />
-              <InstructionLegend label="You have marked the question for review." color="bg-[#6f42c1] border-[#6f42c1]" />
-              <InstructionLegend label="Answered and marked for review." color="bg-[#395fa8] border-[#395fa8]" />
+              <InstructionLegend label="Answered and marked for review. This will be considered for evaluation." color="bg-[#d9a441] border-[#d9a441]" />
+              <InstructionLegend label="Marked for review. This will not be considered for evaluation." color="bg-[#6f42c1] border-[#6f42c1]" />
             </div>
             <div className="space-y-2">
               <p>To answer a question, use the following controls:</p>
               <ul className="list-disc space-y-1 pl-6">
                 <li><span className="font-semibold">Save & Next</span> saves your answer and moves to the next question.</li>
                 <li><span className="font-semibold">Clear Response</span> removes the selected answer.</li>
-                <li><span className="font-semibold">Save & Mark for Review</span> saves your answer and marks it for review.</li>
-                <li><span className="font-semibold">Mark for Review & Next</span> marks the question for review and moves ahead.</li>
+                <li><span className="font-semibold">Save & Mark for Review</span> saves your answer, marks it for review, and still includes it in evaluation.</li>
+                <li><span className="font-semibold">Mark for Review & Next</span> marks the question for review without counting it in evaluation.</li>
               </ul>
             </div>
-            <p>Questions saved and marked for review will be considered for evaluation. Every tab switch and fullscreen exit is tracked and reported to the invigilator. Results are not shown to students after submission.</p>
+            <p>Saved answers and saved answers marked for review are considered for evaluation. Questions only marked for review are excluded from final scoring. Every tab switch and fullscreen exit is tracked and reported to the invigilator. Results are not shown to students after submission.</p>
           </div>
 
           <div className="flex flex-col gap-4 border-t bg-slate-50 px-6 py-5 md:flex-row md:items-center md:justify-between">
@@ -673,7 +880,43 @@ export default function ExamPage() {
               Test Code: <strong className="font-mono text-gray-700">{formatTestCode(session.testCode)}</strong>
             </p>
           </div>
-          <p className="mt-6 text-xs text-gray-400">Returning to home page in 10 seconds.</p>
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-left">
+            <p className="text-sm font-bold text-slate-900">Rate your experience</p>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => !feedbackSubmitted && setFeedbackRating(value)}
+                  className={cn(
+                    "text-3xl transition-transform",
+                    feedbackSubmitted ? "cursor-default" : "hover:scale-110",
+                    (feedbackRating ?? 0) >= value ? "text-amber-400" : "text-slate-300",
+                  )}
+                  aria-label={`Rate ${value} stars`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            {!feedbackSubmitted ? (
+              <Button
+                className="mt-4 h-11 w-full rounded-lg bg-slate-900 font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!feedbackRating || submittingFeedback}
+                onClick={submitFeedback}
+              >
+                {submittingFeedback ? "Submitting rating..." : "Submit Rating"}
+              </Button>
+            ) : (
+              <p className="mt-4 text-center text-sm font-medium text-emerald-600">Thanks for your feedback.</p>
+            )}
+            {feedbackError ? <p className="mt-3 text-center text-xs font-bold text-rose-600">{feedbackError}</p> : null}
+          </div>
+          {feedbackSubmitted ? (
+            <p className="mt-6 text-xs text-gray-400">{`Returning to home page in ${redirectSeconds} second${redirectSeconds === 1 ? "" : "s"}.`}</p>
+          ) : (
+            <p className="mt-6 text-xs text-gray-400">Submit your rating to continue.</p>
+          )}
         </div>
       </div>
     );
@@ -731,9 +974,17 @@ export default function ExamPage() {
             <p><span className="font-semibold text-slate-900">Test Code:</span> {formatTestCode(session.testCode)}</p>
             <p><span className="font-semibold text-slate-900">Current Subject:</span> {question.subject}</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-right lg:mt-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Remaining Time</p>
-            <div className={cn("text-3xl font-black", timerClass(timeLeft))}>{fmt(timeLeft)}</div>
+          <div className="flex items-center gap-3 lg:mt-4">
+            <div className="flex h-[78px] w-[164px] flex-col items-end justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-right">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Remaining Time</p>
+              <div className={cn("text-[2rem] font-black leading-none", timerClass(timeLeft))}>{fmt(timeLeft)}</div>
+            </div>
+            <Button
+              className="h-[78px] w-[164px] rounded-xl bg-[#dc2626] px-4 py-2 text-lg font-bold text-white hover:bg-[#b91c1c]"
+              onClick={() => setShowSubmitDialog(true)}
+            >
+              Submit Exam
+            </Button>
           </div>
         </div>
       </div>
@@ -759,7 +1010,7 @@ export default function ExamPage() {
                         ? "border-[#3d6cb0] bg-[#3d6cb0] text-white"
                         : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
                     )}
-                    onClick={() => matchingIndexes.length > 0 && setCurrentIndex(matchingIndexes[0])}
+                    onClick={() => matchingIndexes.length > 0 && goToQuestion(matchingIndexes[0])}
                   >
                     {label}
                   </button>
@@ -767,12 +1018,12 @@ export default function ExamPage() {
               })}
             </div>
 
-            <div className="space-y-6 p-6">
+            <div className="space-y-4 p-6">
               <div className="border-b border-slate-200 pb-3">
                 <h4 className="text-2xl font-bold text-slate-900">{`Question ${currentIndex + 1}:`}</h4>
               </div>
 
-              <div className="max-h-[calc(100vh-420px)] min-h-[360px] space-y-6 overflow-y-auto pr-2">
+              <div className="max-h-[calc(100vh-360px)] min-h-0 space-y-4 overflow-y-auto pr-2">
                 {passage ? (
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm italic leading-relaxed text-slate-700">
                     <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
@@ -783,7 +1034,7 @@ export default function ExamPage() {
                   </div>
                 ) : null}
 
-                <div className="min-h-[160px] rounded-lg border border-slate-200 bg-white p-4">
+                <div className="rounded-lg border border-slate-200 bg-white px-4 py-4">
                   <p className="text-xl font-medium leading-snug text-slate-900">{question.questionText}</p>
                 </div>
 
@@ -846,7 +1097,7 @@ export default function ExamPage() {
                   </Button>
                   <Button
                     className="h-11 rounded-md bg-[#d9a441] px-5 font-bold text-white hover:bg-[#c39131]"
-                    onClick={() => saveCurrent(true)}
+                    onClick={saveAndMarkForReview}
                   >
                     Save & Mark for Review
                   </Button>
@@ -857,6 +1108,9 @@ export default function ExamPage() {
                     Mark for Review & Next
                   </Button>
                 </div>
+                {questionActionError ? (
+                  <p className="text-sm font-semibold text-rose-600">{questionActionError}</p>
+                ) : null}
 
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
                   <div className="flex gap-3">
@@ -864,7 +1118,7 @@ export default function ExamPage() {
                       variant="outline"
                       className="h-10 rounded-md border-slate-300 px-5 font-bold text-slate-700"
                       disabled={currentIndex === 0}
-                      onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+                      onClick={() => goToQuestion(Math.max(0, currentIndex - 1))}
                     >
                       &lt;&lt; Back
                     </Button>
@@ -872,17 +1126,19 @@ export default function ExamPage() {
                       variant="outline"
                       className="h-10 rounded-md border-slate-300 px-5 font-bold text-slate-700"
                       disabled={currentIndex === session.questions.length - 1}
-                      onClick={() => setCurrentIndex(Math.min(session.questions.length - 1, currentIndex + 1))}
+                      onClick={() => goToQuestion(Math.min(session.questions.length - 1, currentIndex + 1))}
                     >
                       Next &gt;&gt;
                     </Button>
                   </div>
-                  <Button
-                    className="h-10 rounded-md bg-[#4caf50] px-7 font-bold text-white hover:bg-[#449d48]"
-                    onClick={() => setShowSubmitDialog(true)}
-                  >
-                    Submit
-                  </Button>
+                  {currentIndex === session.questions.length - 1 ? (
+                    <Button
+                      className="h-10 rounded-md bg-[#4caf50] px-7 font-bold text-white hover:bg-[#449d48]"
+                      onClick={() => setShowSubmitDialog(true)}
+                    >
+                      Submit
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -896,8 +1152,8 @@ export default function ExamPage() {
                 <PaletteLegend label="Not Visited" color="bg-white border-slate-300" />
                 <PaletteLegend label="Not Answered" color="bg-[#e4572e] border-[#e4572e]" />
                 <PaletteLegend label="Answered" color="bg-[#43a047] border-[#43a047]" />
-                <PaletteLegend label="Marked for Review" color="bg-[#6f42c1] border-[#6f42c1]" />
-                <PaletteLegend label="Answered & Marked for Review" color="bg-[#395fa8] border-[#395fa8]" className="col-span-2" />
+                <PaletteLegend label="Answered & Marked for Review" color="bg-[#d9a441] border-[#d9a441]" />
+                <PaletteLegend label="Marked for Review" color="bg-[#6f42c1] border-[#6f42c1]" className="col-span-2" />
               </div>
             </div>
 
@@ -914,31 +1170,32 @@ export default function ExamPage() {
                   <h5 className="text-sm font-bold uppercase tracking-widest text-slate-900">Question Palette</h5>
                   <p className="text-[11px] font-bold text-slate-500">{answeredCount}/{states.length} Answered</p>
                 </div>
-                <div className="max-h-[420px] overflow-auto pr-2">
+                <div className="max-h-[420px] overflow-auto p-1 pr-2">
                   <div className="grid grid-cols-5 gap-2">
                     {session.questions.map((q, idx) => {
                       const state = states[idx];
                       const active = idx === currentIndex;
 
-                      let colorClass = "bg-white border-slate-100 text-slate-300 hover:border-slate-300";
-                      const isAnswered = !!state?.selectedOption;
-                      const isMarked = !!state?.markedForReview;
+                      let colorClass = "bg-white border-slate-300 text-slate-600 hover:border-slate-400";
+                      const savedStatus = state?.savedStatus ?? "NOT_VISITED";
                       const isVisited = !!state?.visited;
+                      const needsAttention = !!state?.needsAttention;
 
-                      if (isAnswered && isMarked) colorClass = "bg-[#395fa8] border-[#395fa8] text-white";
-                      else if (isMarked) colorClass = "bg-[#6f42c1] border-[#6f42c1] text-white";
-                      else if (isAnswered) colorClass = "bg-[#43a047] border-[#43a047] text-white";
-                      else if (isVisited) colorClass = "bg-[#e4572e] border-[#e4572e] text-white";
+                      if (needsAttention) colorClass = "bg-[#e4572e] border-[#e4572e] text-white";
+                      else if (savedStatus === "ANSWERED_MARKED") colorClass = "bg-[#d9a441] border-[#d9a441] text-white";
+                      else if (savedStatus === "MARKED") colorClass = "bg-[#6f42c1] border-[#6f42c1] text-white";
+                      else if (savedStatus === "ANSWERED") colorClass = "bg-[#43a047] border-[#43a047] text-white";
+                      else if (isVisited && !active) colorClass = "bg-[#e4572e] border-[#e4572e] text-white";
 
                       return (
                         <button
                           key={q.id}
                           className={cn(
-                            "flex h-10 w-10 items-center justify-center rounded-md border text-[12px] font-bold transition-all duration-200",
+                            "m-0.5 flex h-10 w-10 items-center justify-center rounded-md border text-[13px] font-black transition-all duration-200",
                             colorClass,
                             active && "ring-2 ring-slate-900 ring-offset-1"
                           )}
-                          onClick={() => setCurrentIndex(idx)}
+                          onClick={() => goToQuestion(idx)}
                         >
                           {String(idx + 1).padStart(2, '0')}
                         </button>
@@ -951,7 +1208,7 @@ export default function ExamPage() {
               <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-700">
                 <p>Not Answered: <span className="font-bold">{unattemptedCount}</span></p>
                 <p>Answered: <span className="font-bold">{answeredCount}</span></p>
-                <p>Marked for Review: <span className="font-bold">{states.filter((s) => s.markedForReview).length}</span></p>
+                <p>Marked for Review: <span className="font-bold">{markedForReviewCount}</span></p>
               </div>
             </div>
           </div>

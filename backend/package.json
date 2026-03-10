@@ -1,0 +1,25 @@
+{
+  "name": "montessori-admission-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "dev:https": "set \"HTTPS=true\" && node --watch src/server.js",
+    "start": "node src/server.js",
+    "check": "node --check src/server.js",
+    "create-users": "node src/db/createAdminUsers.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1",
+    "ws": "^8.18.0",
+    "zod": "^3.24.1"
+  }
+}

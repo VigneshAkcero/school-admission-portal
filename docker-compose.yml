@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: montessori-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: montessori_admission
+    ports:
+      - "5432:5432"
+    volumes:
+      - montessori_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d montessori_admission"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  montessori_pg_data:

@@ -1,7 +1,5 @@
 "use client";
 
-import { getApiBase, getApiBaseCandidates } from "@/lib/auth-context";
-
 export async function apiRequest<T>(
   path: string,
   options: {
@@ -20,37 +18,15 @@ export async function apiRequest<T>(
     cache: "no-store",
   };
 
-  let response: Response | null = null;
-  let lastNetworkError: unknown = null;
+  // Always use the same-origin proxy route through Next.js API
+  const response = await fetch(path, fetchInit);
 
-  // Prefer same-origin proxy first to avoid browser mixed-content/certificate issues.
-  try {
-    response = await fetch(path, fetchInit);
-  } catch (error) {
-    lastNetworkError = error;
-  }
-
-  if (!response) {
-    for (const base of getApiBaseCandidates()) {
-      try {
-        response = await fetch(`${base}${path}`, fetchInit);
-        break;
-      } catch (error) {
-        lastNetworkError = error;
-      }
-    }
-  }
-
-  if (!response) {
-    throw new Error((lastNetworkError as Error)?.message || "Cannot reach API server");
-  }
-
-  const payload = await response.json();
   if (!response.ok) {
+    const payload = await response.json();
     throw new Error(payload.error || "Request failed");
   }
 
-  return payload as T;
+  return response.json() as Promise<T>;
 }
 
 export function getWsUrl(channel: "admin" | "student" | "ADMIN_MONITOR", testCode?: string) {

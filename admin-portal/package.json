@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 3300",
-    "dev:https": "next dev --experimental-https --experimental-https-key ../certs/dev.key --experimental-https-cert ../certs/dev.crt -H 0.0.0.0 -p 3300",
+    "dev": "concurrently \"cd ../server && npm run dev\" \"next dev -H 0.0.0.0 -p 3300\"",
+    "dev:https": "concurrently \"cd ../server && npm run dev\" \"next dev --experimental-https --experimental-https-key ../certs/dev.key --experimental-https-cert ../certs/dev.crt -H 0.0.0.0 -p 3300\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint ."
@@ -67,6 +67,7 @@
     "@types/node": "^22",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "concurrently": "^8.2.2",
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
     "tw-animate-css": "1.3.3",
